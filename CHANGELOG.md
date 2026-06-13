@@ -1,3 +1,9 @@
+## [1.4.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.3.1...v1.4.0) (2026-06-13)
+
+### Features
+
+* auto-tagging with calorie ranges and digestibility classification ([#5](https://github.com/timo-reymann/mealie-calorie-estimator/issues/5)) ([92adf4b](https://github.com/timo-reymann/mealie-calorie-estimator/commit/92adf4b71c6fcc8ee856ec500bdac9ff48d075b9))
+
 ## [1.3.1](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.3.0...v1.3.1) (2026-06-13)
 
 ### Bug Fixes
