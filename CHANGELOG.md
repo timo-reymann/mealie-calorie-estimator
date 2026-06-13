@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.3.0...v1.3.1) (2026-06-13)
+
+### Bug Fixes
+
+* replace node:22-alpine with wolfi-base + nodejs-22 ([#4](https://github.com/timo-reymann/mealie-calorie-estimator/issues/4)) ([a058322](https://github.com/timo-reymann/mealie-calorie-estimator/commit/a0583222550829d9d43eae42e685197c3b6bb2c6))
+
 ## [1.3.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.2.1...v1.3.0) (2026-06-13)
 
 ### Features
