@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  calorie-estimator:
+    build: .
+    container_name: mealie-calorie-estimator
+    environment:
+      - MEALIE_URL=${MEALIE_URL:-http://mealie:9000}
+      - MEALIE_API_TOKEN=${MEALIE_API_TOKEN}
+      - OFF_LANGUAGE=${OFF_LANGUAGE:-de}
+      - OFF_USER_AGENT=${OFF_USER_AGENT:-MealieCalorieEstimator/1.0 (calories@example.com)}
+      - LLM_ENABLED=${LLM_ENABLED:-false}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LLM_RATE_LIMIT=${LLM_RATE_LIMIT:-30}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

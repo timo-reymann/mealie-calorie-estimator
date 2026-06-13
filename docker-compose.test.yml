@@ -1,0 +1,47 @@
+services:
+  mock-off:
+    image: node:22-alpine
+    container_name: mealie-mock-off
+    command: ["node", "/app/mock-off-server.js"]
+    volumes:
+      - ./tests/mock-off-server.js:/app/mock-off-server.js
+    ports:
+      - "3001:3000"
+
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v3.19.2
+    container_name: mealie-test
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - mealie-test-data:/app/data/
+    environment:
+      ALLOW_SIGNUP: "true"
+      DB_ENGINE: sqlite
+      LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/api/app/about"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  calorie-estimator:
+    build: .
+    container_name: mealie-calorie-estimator-test
+    env_file:
+      - .compose-test.env
+    environment:
+      - MEALIE_URL=http://mealie:9000
+      - LOG_LEVEL=debug
+    ports:
+      - "8002:8000"
+    depends_on:
+      mealie:
+        condition: service_healthy
+      mock-off:
+        condition: service_started
+
+volumes:
+  mealie-test-data:

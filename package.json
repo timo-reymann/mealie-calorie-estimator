@@ -1,0 +1,28 @@
+{
+  "name": "mealie-calorie-estimator",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "fastify": "^5.3.1",
+    "lru-cache": "^11.1.0",
+    "pino": "^9.6.0",
+    "rate-limiter-flexible": "^5.0.5",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/sql.js": "^1.4.11",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.8"
+  }
+}

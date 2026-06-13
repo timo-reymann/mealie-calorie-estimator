@@ -1,0 +1,7 @@
+.env
+.compose-test.env
+node_modules
+dist/
+test-results.xml
+data/
+*.db
