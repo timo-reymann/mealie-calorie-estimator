@@ -237,6 +237,16 @@ SOFTWARE.
 
 =============================================
 
+Module:  @rolldown/binding-linux-x64-gnu
+Version: 1.0.3
+License: MIT
+
+# `@rolldown/binding-linux-x64-gnu`
+
+This is the **x86_64-unknown-linux-gnu** binary for `@rolldown/binding`
+
+=============================================
+
 Module:  abstract-logging
 Version: 2.0.1
 License: MIT
