@@ -42,8 +42,8 @@ export function perServingFromRecipeNutrition(nutrition: MealieNutrition | null)
 
   const p = (v: string | null): number | null => {
     if (v === null || v.trim() === "") return null
-    const n = parseFloat(v)
-    return isNaN(n) ? null : n
+    const n = Number.parseFloat(v)
+    return Number.isNaN(n) ? null : n
   }
 
   return {
@@ -82,8 +82,9 @@ export function mergeTags(
 
 export function tagsAreComplete(recipe: MealieRecipe): boolean {
   const slugs: string[] = JSON.parse(recipe.extras?.calorie_estimator_tags || "[]")
-  const currentSlugs = (recipe.tags || []).map(t => t.slug)
-  return slugs.length > 0 && slugs.every(s => currentSlugs.includes(s))
+  if (slugs.length === 0) return false
+  const current = new Set((recipe.tags || []).map(t => t.slug))
+  return slugs.every(s => current.has(s))
 }
 
 export async function resolveAndMergeTags(
