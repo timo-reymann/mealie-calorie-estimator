@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.2.0...v1.2.1) (2026-06-13)
+
+### Bug Fixes
+
+* add @vitest/coverage-v8 as devDependency ([7199943](https://github.com/timo-reymann/mealie-calorie-estimator/commit/71999436742891c47d5361d3b204546d1dc4f8e0))
+
 ## [1.2.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.1.0...v1.2.0) (2026-06-13)
 
 ### Features
