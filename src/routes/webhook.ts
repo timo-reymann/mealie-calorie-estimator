@@ -3,12 +3,10 @@ import type { AppriseWebhookPayload, EventRecipeData } from "../types.js"
 import { getRecipe, patchRecipe } from "../services/mealie-client.js"
 import {
   computeIngredientHash,
-  estimateRecipe,
-  buildNutritionPatch,
   hasManualCalories,
   buildManualAckPatch,
 } from "../services/estimator.js"
-import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags } from "../services/tagging.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 
 function isEventRecipeData(v: unknown): v is EventRecipeData {
@@ -56,17 +54,8 @@ async function processWebhook(slug: string): Promise<void> {
       return
     }
 
-    const result = await estimateRecipe(recipe)
-    const nutritionPatch = buildNutritionPatch(result, hash, recipe.recipeYield)
-
-    const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients)
-    await patchRecipe(slug, {
-      ...nutritionPatch,
-      tags,
-      extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
-    })
-
-    logger.info({ slug, calories: result.perServingNutrients.kcalPer100g, tags: tagSlugs }, "Updated recipe nutrition and tags")
+    const { calories, tagSlugs } = await estimateAndTag(recipe, hash)
+    logger.info({ slug, calories, tags: tagSlugs }, "Updated recipe nutrition and tags")
   } catch (err) {
     logger.error({ slug, err }, "Webhook background processing failed")
   }

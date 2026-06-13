@@ -2,12 +2,10 @@ import type { FastifyInstance } from "fastify"
 import { getAllRecipes, getRecipe, patchRecipe } from "../services/mealie-client.js"
 import {
   computeIngredientHash,
-  estimateRecipe,
-  buildNutritionPatch,
   hasManualCalories,
   buildManualAckPatch,
 } from "../services/estimator.js"
-import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags } from "../services/tagging.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 
 async function processBackfill(): Promise<void> {
@@ -51,15 +49,7 @@ async function processBackfill(): Promise<void> {
           continue
         }
 
-        const result = await estimateRecipe(recipe)
-        const nutritionPatch = buildNutritionPatch(result, hash, recipe.recipeYield)
-
-        const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients)
-        await patchRecipe(slug, {
-          ...nutritionPatch,
-          tags,
-          extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
-        })
+        const { tagSlugs } = await estimateAndTag(recipe, hash)
         updated++
       } catch (err) {
         errors++

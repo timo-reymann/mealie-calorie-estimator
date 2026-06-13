@@ -1,5 +1,6 @@
-import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe } from "../types.js"
-import { getOrCreateTags } from "./mealie-client.js"
+import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe, EstimateResult } from "../types.js"
+import { getOrCreateTags, patchRecipe } from "./mealie-client.js"
+import { estimateRecipe, buildNutritionPatch } from "./estimator.js"
 
 export function getCalorieTag(kcal: number | null): string | null {
   if (kcal === null) return null
@@ -94,4 +95,19 @@ export async function resolveAndMergeTags(
   const { tags: autoTags, slugs: oldSlugs } = await resolveAutoTags(recipe, perServing)
   const merged = mergeTags(recipe, autoTags, oldSlugs)
   return { tags: merged, tagSlugs: autoTags.map(t => t.slug) }
+}
+
+export async function estimateAndTag(
+  recipe: MealieRecipe,
+  hash: string,
+): Promise<{ calories: number | null; tagSlugs: string[] }> {
+  const result = await estimateRecipe(recipe)
+  const nutritionPatch = buildNutritionPatch(result, hash, recipe.recipeYield)
+  const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients)
+  await patchRecipe(recipe.slug, {
+    ...nutritionPatch,
+    tags,
+    extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
+  })
+  return { calories: result.perServingNutrients.kcalPer100g, tagSlugs }
 }
