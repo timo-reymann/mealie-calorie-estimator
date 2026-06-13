@@ -86,11 +86,7 @@ jobs:
             DIFF_OUTPUT=""
           fi
 
-          {
-            echo "diff<<NOTICE_DIFF_EOF"
-            echo "$DIFF_OUTPUT"
-            echo "NOTICE_DIFF_EOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "$DIFF_OUTPUT" > /tmp/notice_diff.txt
 
       - name: Auto-commit NOTICE file for Renovate PRs
         id: notice-auto-commit
@@ -145,7 +141,10 @@ jobs:
                 'The `NOTICE` file was out of date and has been automatically committed to this Renovate PR.',
               );
             } else if (noticeOutdated) {
-              const noticeDiff = `${{ steps.notice-check.outputs.diff }}`;
+              const noticeDiffPath = '/tmp/notice_diff.txt';
+              const noticeDiff = require('fs').existsSync(noticeDiffPath)
+                ? require('fs').readFileSync(noticeDiffPath, 'utf8').trim()
+                : '';
               sections.push(
                 '',
                 '### :warning: NOTICE file out of date',
