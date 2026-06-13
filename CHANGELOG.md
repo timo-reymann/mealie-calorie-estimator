@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.2.1...v1.3.0) (2026-06-13)
+
+### Features
+
+* replace ORT with license-checker, add NOTICE to container image ([#3](https://github.com/timo-reymann/mealie-calorie-estimator/issues/3)) ([fd62322](https://github.com/timo-reymann/mealie-calorie-estimator/commit/fd623224288bc3bba33ff68bc2ae586ceda853d8))
+
 ## [1.2.1](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.2.0...v1.2.1) (2026-06-13)
 
 ### Bug Fixes
