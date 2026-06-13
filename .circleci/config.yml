@@ -24,7 +24,7 @@ jobs:
       - checkout
       - node/install-packages:
           pkg-manager: npm
-          cache-version: 2
+          cache-version: "2"
           npm-install-command: npm install
       - run:
           name: Install platform-specific native binding
