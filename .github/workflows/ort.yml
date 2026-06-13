@@ -1,4 +1,4 @@
-name: ORT License Compliance
+name: License Compliance
 
 on:
   pull_request:
@@ -11,5 +11,225 @@ permissions:
   checks: write
 
 jobs:
+  changes:
+    name: Check for dependency changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: write
+    outputs:
+      dependencies: ${{ steps.filter.outputs.dependencies }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dependencies:
+              - "package.json"
+              - "package-lock.json"
+              - "NOTICE"
+
   license-check:
-    uses: timo-reymann/.github/.github/workflows/ort.yml@main
+    name: License Compliance
+    needs: changes
+    if: needs.changes.outputs.dependencies == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate NOTICE
+        id: generate
+        run: |
+          npx license-checker --production --json > /tmp/licenses.json
+          node .github/generate-notice.cjs /tmp/licenses.json /tmp/NOTICE_GENERATED
+
+      - name: Upload generated NOTICE
+        if: always() && steps.generate.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-notice
+          path: /tmp/NOTICE_GENERATED
+
+      - name: Check NOTICE file
+        id: notice-check
+        if: always() && steps.generate.outcome == 'success'
+        run: |
+          if [ ! -f NOTICE ]; then
+            echo "outdated=true" >> "$GITHUB_OUTPUT"
+            echo "reason=NOTICE file does not exist in the repository" >> "$GITHUB_OUTPUT"
+            DIFF_OUTPUT=$(head -100 /tmp/NOTICE_GENERATED)
+          elif ! diff -q --strip-trailing-cr NOTICE /tmp/NOTICE_GENERATED > /dev/null 2>&1; then
+            echo "outdated=true" >> "$GITHUB_OUTPUT"
+            echo "reason=NOTICE file differs from generated NOTICE" >> "$GITHUB_OUTPUT"
+            DIFF_OUTPUT=$(diff -u --strip-trailing-cr NOTICE /tmp/NOTICE_GENERATED || true)
+            DIFF_OUTPUT=$(echo "$DIFF_OUTPUT" | head -100)
+          else
+            echo "outdated=false" >> "$GITHUB_OUTPUT"
+            DIFF_OUTPUT=""
+          fi
+
+          echo "$DIFF_OUTPUT" > /tmp/notice_diff.txt
+
+      - name: Auto-commit NOTICE file for Renovate PRs
+        id: notice-auto-commit
+        if: >-
+          always()
+          && steps.notice-check.outputs.outdated == 'true'
+          && steps.notice-check.outcome == 'success'
+          && github.event_name == 'pull_request'
+          && startsWith(github.head_ref, 'renovate/')
+        run: |
+          git fetch origin "${{ github.head_ref }}"
+          git checkout "${{ github.head_ref }}"
+          cp /tmp/NOTICE_GENERATED NOTICE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add NOTICE
+          if git diff --cached --quiet; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore: Update NOTICE file"
+            git push
+            echo "committed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment on PR
+        if: always() && steps.generate.outcome != 'skipped' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const generate = '${{ steps.generate.outcome }}';
+            const noticeOutdated = '${{ steps.notice-check.outputs.outdated }}' === 'true';
+            const noticeAutoCommitted = '${{ steps.notice-auto-commit.outputs.committed }}' === 'true';
+            const noticeReason = '${{ steps.notice-check.outputs.reason }}';
+            const passed = generate === 'success' && (!noticeOutdated || noticeAutoCommitted);
+            const status = passed ? ':white_check_mark: passed' : ':x: failed';
+
+            const ghsBase = `https://ghs.timo-reymann.de/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts`;
+            const noticeUrl = `${ghsBase}/license-notice/NOTICE_GENERATED`;
+
+            const sections = [
+              `## License Compliance \u2014 ${status}`,
+              'Using [license-checker](https://github.com/davglass/license-checker) to check license compliance for npm dependencies.',
+              '',
+              '### Reports',
+              `- [:page_facing_up: Generated NOTICE](${noticeUrl})`,
+            ];
+
+            if (noticeOutdated && noticeAutoCommitted) {
+              sections.push(
+                '',
+                '### :white_check_mark: NOTICE file auto-updated',
+                'The `NOTICE` file was out of date and has been automatically committed to this Renovate PR.',
+              );
+            } else if (noticeOutdated) {
+              const noticeDiffPath = '/tmp/notice_diff.txt';
+              const noticeDiff = require('fs').existsSync(noticeDiffPath)
+                ? require('fs').readFileSync(noticeDiffPath, 'utf8').trim()
+                : '';
+              sections.push(
+                '',
+                '### :warning: NOTICE file out of date',
+                `${noticeReason}. Please update the \`NOTICE\` file by running \`node .github/generate-notice.cjs\` locally or reviewing the generated NOTICE artifact.`,
+              );
+              if (noticeDiff) {
+                sections.push(
+                  '',
+                  '<details>',
+                  '<summary>Diff (first 100 lines)</summary>',
+                  '',
+                  '```diff',
+                  noticeDiff,
+                  '```',
+                  '',
+                  '</details>',
+                );
+              }
+            }
+
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            sections.push('', `[View full run](${runUrl})`);
+
+            const body = sections.join('\n');
+            const marker = '<!-- license-compliance -->';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            const fullBody = `${marker}\n${body}`;
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: fullBody,
+              });
+            }
+
+      - name: Create GitHub Checks
+        if: always() && steps.generate.outcome != 'skipped' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const generate = '${{ steps.generate.outcome }}';
+            const noticeOutdated = '${{ steps.notice-check.outputs.outdated }}' === 'true';
+            const noticeAutoCommitted = '${{ steps.notice-auto-commit.outputs.committed }}' === 'true';
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'License Compliance',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: generate === 'success' ? 'success' : 'failure',
+              output: {
+                title: 'License Compliance Check',
+                summary: generate === 'success' ? 'All licenses are compliant' : 'License compliance issues found',
+              }
+            });
+
+            const noticeResolved = !noticeOutdated || noticeAutoCommitted;
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'NOTICE File',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: noticeResolved ? 'success' : 'failure',
+              output: {
+                title: 'NOTICE File Check',
+                summary: noticeAutoCommitted
+                  ? 'NOTICE file was auto-updated'
+                  : noticeOutdated
+                    ? 'NOTICE file is out of date'
+                    : 'NOTICE file is up to date',
+              }
+            });
