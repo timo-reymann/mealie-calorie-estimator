@@ -10,6 +10,7 @@ only_tags: &only_tags
 orbs:
   node: circleci/node@5.3.0
   docker: circleci/docker@3.0.1
+  codecov: codecov/codecov@5.4.3
   semantic-release: trustedshops-public/semantic-release@6.1.0
 
 executors:
@@ -38,7 +39,8 @@ jobs:
           command: npm run typecheck
       - run:
           name: Run tests
-          command: npm test
+          command: npm test -- --coverage
+      - codecov/upload
       - run:
           name: Collect test results
           command: mkdir -p test-results && mv test-results.xml test-results/

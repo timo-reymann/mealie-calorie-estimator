@@ -8,5 +8,10 @@ export default defineConfig({
       CACHE_DB_PATH: "data/test-cache.db",
     },
     reporters: ["default", ["junit", { outputFile: "test-results.xml" }]],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      reportsDirectory: "coverage",
+    },
   },
 })
