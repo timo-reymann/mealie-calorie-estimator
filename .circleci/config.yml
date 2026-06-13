@@ -54,9 +54,9 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: default
-      - docker/check:
-          docker_username: DOCKER_USERNAME
-          docker_password: DOCKER_TOKEN
+      - run:
+          name: Docker login
+          command: echo "${DOCKER_TOKEN}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
       - docker/build:
           image: timoreymann/mealie-calorie-estimator
           tag: latest,${CIRCLE_TAG}
