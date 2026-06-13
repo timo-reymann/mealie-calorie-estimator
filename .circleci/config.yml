@@ -25,6 +25,9 @@ jobs:
       - node/install-packages:
           pkg-manager: npm
       - run:
+          name: Install platform-specific native binding
+          command: npm install @rolldown/binding-linux-x64-gnu --no-save
+      - run:
           name: Type check
           command: npm run typecheck
       - run:
