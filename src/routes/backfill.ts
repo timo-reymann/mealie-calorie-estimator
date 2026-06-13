@@ -7,6 +7,7 @@ import {
   hasManualCalories,
   buildManualAckPatch,
 } from "../services/estimator.js"
+import { perServingFromRecipeNutrition, resolveAutoTags, mergeTags } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 
 async function processBackfill(): Promise<void> {
@@ -17,6 +18,7 @@ async function processBackfill(): Promise<void> {
     let skipped = 0
     let manual = 0
     let errors = 0
+    let tagOnly = 0
 
     for (const slug of allSlugs) {
       processed++
@@ -27,7 +29,25 @@ async function processBackfill(): Promise<void> {
         const existingHash = recipe.extras?.calorie_estimator_hash
 
         if (existingHash === hash) {
-          skipped++
+          const perServing = perServingFromRecipeNutrition(recipe.nutrition)
+          const { tags: autoTags } = await resolveAutoTags(recipe, perServing)
+          const existingAutoSlugs: string[] = JSON.parse(recipe.extras?.calorie_estimator_tags || "[]")
+          const currentTagSlugs = (recipe.tags || []).map(t => t.slug)
+
+          if (existingAutoSlugs.length > 0 && existingAutoSlugs.every(s => currentTagSlugs.includes(s))) {
+            skipped++
+            continue
+          }
+
+          const merged = mergeTags(recipe, autoTags, existingAutoSlugs)
+          await patchRecipe(slug, {
+            tags: merged,
+            extras: {
+              ...recipe.extras,
+              calorie_estimator_tags: JSON.stringify(autoTags.map(t => t.slug)),
+            },
+          })
+          tagOnly++
           continue
         }
 
@@ -39,8 +59,19 @@ async function processBackfill(): Promise<void> {
         }
 
         const result = await estimateRecipe(recipe)
-        const patch = buildNutritionPatch(result, hash, recipe.recipeYield)
-        await patchRecipe(slug, patch)
+        const nutritionPatch = buildNutritionPatch(result, hash, recipe.recipeYield)
+
+        const { tags: autoTags, slugs: oldAutoSlugs } = await resolveAutoTags(recipe, result.perServingNutrients)
+        const merged = mergeTags(recipe, autoTags, oldAutoSlugs)
+
+        await patchRecipe(slug, {
+          ...nutritionPatch,
+          tags: merged,
+          extras: {
+            ...nutritionPatch.extras,
+            calorie_estimator_tags: JSON.stringify(autoTags.map(t => t.slug)),
+          },
+        })
         updated++
       } catch (err) {
         errors++
@@ -48,11 +79,11 @@ async function processBackfill(): Promise<void> {
       }
 
       if (processed % 10 === 0) {
-        logger.info({ processed, total: allSlugs.length, updated, skipped, manual, errors }, "Backfill progress")
+        logger.info({ processed, total: allSlugs.length, updated, skipped, manual, tagOnly, errors }, "Backfill progress")
       }
     }
 
-    logger.info({ processed, total: allSlugs.length, updated, skipped, manual, errors }, "Backfill complete")
+    logger.info({ processed, total: allSlugs.length, updated, skipped, manual, tagOnly, errors }, "Backfill complete")
   } catch (err) {
     logger.error({ err }, "Backfill background processing failed")
   }
