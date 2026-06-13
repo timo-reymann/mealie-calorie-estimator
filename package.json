@@ -23,7 +23,8 @@
     "@types/sql.js": "^1.4.11",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.8"
   },
   "optionalDependencies": {
     "@rolldown/binding-linux-x64-gnu": "^1.0.3"
