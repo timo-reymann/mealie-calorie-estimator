@@ -1,20 +1,76 @@
 version: "3.9"
 
+x-calorie-env: &calorie-env
+  MEALIE_URL: ${MEALIE_URL:-http://mealie:9000}
+  OFF_LANGUAGE: ${OFF_LANGUAGE:-en}
+  OFF_USER_AGENT: ${OFF_USER_AGENT:-MealieCalorieEstimator/1.0 (calories@example.com)}
+  LLM_ENABLED: ${LLM_ENABLED:-false}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+  LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+  LLM_RATE_LIMIT: ${LLM_RATE_LIMIT:-30}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
 services:
   calorie-estimator:
     build: .
     container_name: mealie-calorie-estimator
     environment:
-      - MEALIE_URL=${MEALIE_URL:-http://mealie:9000}
-      - MEALIE_API_TOKEN=${MEALIE_API_TOKEN}
-      - OFF_LANGUAGE=${OFF_LANGUAGE:-de}
-      - OFF_USER_AGENT=${OFF_USER_AGENT:-MealieCalorieEstimator/1.0 (calories@example.com)}
-      - LLM_ENABLED=${LLM_ENABLED:-false}
-      - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
-      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
-      - LLM_RATE_LIMIT=${LLM_RATE_LIMIT:-30}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+      <<: *calorie-env
+      MEALIE_API_TOKEN: ${MEALIE_API_TOKEN}
     ports:
       - "8000:8000"
     restart: unless-stopped
+
+  calorie-estimator-test:
+    build: .
+    container_name: mealie-calorie-estimator-test
+    env_file: .compose-test.env
+    environment:
+      <<: *calorie-env
+      MEALIE_URL: http://mealie:9000
+      LOG_LEVEL: debug
+    ports:
+      - "8002:8000"
+    depends_on:
+      mealie:
+        condition: service_healthy
+      mock-off:
+        condition: service_started
+    profiles:
+      - test
+
+  mock-off:
+    image: node:22-alpine
+    container_name: mealie-mock-off
+    command: ["node", "/app/mock-off-server.js"]
+    volumes:
+      - ./tests/mock-off-server.js:/app/mock-off-server.js
+    ports:
+      - "3001:3000"
+    profiles:
+      - test
+
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v3.19.2
+    container_name: mealie-test
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - mealie-test-data:/app/data/
+    environment:
+      ALLOW_SIGNUP: "true"
+      DB_ENGINE: sqlite
+      LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/api/app/about"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    profiles:
+      - test
+
+volumes:
+  mealie-test-data:

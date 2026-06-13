@@ -10,6 +10,7 @@ function makeRecipe(overrides: Partial<MealieRecipe> = {}): MealieRecipe {
     recipeServings: 4,
     recipeIngredient: [],
     nutrition: null,
+    tags: [],
     extras: {},
     ...overrides,
   }

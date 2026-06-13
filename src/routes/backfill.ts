@@ -2,11 +2,10 @@ import type { FastifyInstance } from "fastify"
 import { getAllRecipes, getRecipe, patchRecipe } from "../services/mealie-client.js"
 import {
   computeIngredientHash,
-  estimateRecipe,
-  buildNutritionPatch,
   hasManualCalories,
   buildManualAckPatch,
 } from "../services/estimator.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 
 async function processBackfill(): Promise<void> {
@@ -17,6 +16,7 @@ async function processBackfill(): Promise<void> {
     let skipped = 0
     let manual = 0
     let errors = 0
+    let tagOnly = 0
 
     for (const slug of allSlugs) {
       processed++
@@ -27,7 +27,18 @@ async function processBackfill(): Promise<void> {
         const existingHash = recipe.extras?.calorie_estimator_hash
 
         if (existingHash === hash) {
-          skipped++
+          if (tagsAreComplete(recipe)) {
+            skipped++
+            continue
+          }
+
+          const perServing = perServingFromRecipeNutrition(recipe.nutrition)
+          const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing)
+          await patchRecipe(slug, {
+            tags,
+            extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
+          })
+          tagOnly++
           continue
         }
 
@@ -38,9 +49,7 @@ async function processBackfill(): Promise<void> {
           continue
         }
 
-        const result = await estimateRecipe(recipe)
-        const patch = buildNutritionPatch(result, hash, recipe.recipeYield)
-        await patchRecipe(slug, patch)
+        await estimateAndTag(recipe, hash)
         updated++
       } catch (err) {
         errors++
@@ -48,11 +57,11 @@ async function processBackfill(): Promise<void> {
       }
 
       if (processed % 10 === 0) {
-        logger.info({ processed, total: allSlugs.length, updated, skipped, manual, errors }, "Backfill progress")
+        logger.info({ processed, total: allSlugs.length, updated, skipped, manual, tagOnly, errors }, "Backfill progress")
       }
     }
 
-    logger.info({ processed, total: allSlugs.length, updated, skipped, manual, errors }, "Backfill complete")
+    logger.info({ processed, total: allSlugs.length, updated, skipped, manual, tagOnly, errors }, "Backfill complete")
   } catch (err) {
     logger.error({ err }, "Backfill background processing failed")
   }

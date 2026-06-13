@@ -3,11 +3,10 @@ import type { AppriseWebhookPayload, EventRecipeData } from "../types.js"
 import { getRecipe, patchRecipe } from "../services/mealie-client.js"
 import {
   computeIngredientHash,
-  estimateRecipe,
-  buildNutritionPatch,
   hasManualCalories,
   buildManualAckPatch,
 } from "../services/estimator.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 
 function isEventRecipeData(v: unknown): v is EventRecipeData {
@@ -33,7 +32,18 @@ async function processWebhook(slug: string): Promise<void> {
     const existingHash = recipe.extras?.calorie_estimator_hash
 
     if (existingHash === hash) {
-      logger.info({ slug }, "Ingredients and servings unchanged, skipping estimation")
+      if (tagsAreComplete(recipe)) {
+        logger.info({ slug }, "Tags up to date, skipping")
+        return
+      }
+
+      const perServing = perServingFromRecipeNutrition(recipe.nutrition)
+      const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing)
+      await patchRecipe(slug, {
+        tags,
+        extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
+      })
+      logger.info({ slug, tags: tagSlugs }, "Added missing auto-tags")
       return
     }
 
@@ -44,11 +54,8 @@ async function processWebhook(slug: string): Promise<void> {
       return
     }
 
-    const result = await estimateRecipe(recipe)
-    const patch = buildNutritionPatch(result, hash, recipe.recipeYield)
-    await patchRecipe(slug, patch)
-
-    logger.info({ slug, calories: result.perServingNutrients.kcalPer100g }, "Updated recipe nutrition")
+    const { calories, tagSlugs } = await estimateAndTag(recipe, hash)
+    logger.info({ slug, calories, tags: tagSlugs }, "Updated recipe nutrition and tags")
   } catch (err) {
     logger.error({ slug, err }, "Webhook background processing failed")
   }

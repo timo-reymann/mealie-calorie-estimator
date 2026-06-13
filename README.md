@@ -26,6 +26,7 @@ mealie-calorie-estimator
 - Built-in unit conversion (g, kg, tbsp, tsp, cup, oz, lb)
 - Skips re-estimation via a SHA256 ingredient hash and preserves manually entered calories
 - Webhook, on-demand, and bulk backfill entry points
+- **Auto-tags** recipes with calorie range and digestibility tags
 
 ## Purpose
 
@@ -36,6 +37,31 @@ This small service enriches [Mealie](https://mealie.io/) (self-hosted recipe man
 3. **Patching nutrition** back into Mealie's nutrition fields.
 
 Unit conversion uses a built-in table for common units. Custom units are estimated via LLM when enabled. A SHA256 hash of the ingredients skips re-estimation when nothing changed, and manually entered calories are preserved.
+
+### Auto-Tagging
+
+Every estimated recipe gets up to two auto-tags applied in Mealie: one for calorie range and one for digestibility.
+
+**Calorie tags** (per serving):
+
+| Tag | Range (kcal) |
+|---|---|
+| `Calories:Light` | < 350 |
+| `Calories:Moderate` | 350 – 600 |
+| `Calories:Hearty` | 600 – 850 |
+| `Calories:Heavy` | > 850 |
+
+**Digestibility tags** (based on macronutrient ratios):
+
+| Tag | Criteria |
+|---|---|
+| `Digest:Easy` | fat < 30% of calories AND kcal ≤ 600 |
+| `Digest:Slow` | fat ≥ 40% of calories |
+| `Digest:Unknown` | missing data or middle ground |
+
+The digestibility heuristic relies on per-serving fat and calorie data — high fat indicates slow digestion, low fat with moderate calories indicates a lighter meal.
+
+Tags are created automatically in Mealie when first needed. On re-estimation, old auto-tags are replaced but user-applied tags are preserved. If a recipe already has nutrition data but is missing auto-tags (e.g. after upgrading), they are added without re-estimating.
 
 ## Installation
 
@@ -88,7 +114,7 @@ See [`.env.example`](./.env.example) for the full list, including rate-limit and
 ## Usage
 
 1. Navigate to your Mealie instance
-2. Go to `Settings > Group > Event Notifiers`
+2. Go to `Settings > User Settings > Notifiers`
 3. Click `Create`
 4. Fill out the form
     - **Apprise URL**: `json://calorie-estimator:8000/webhook`
@@ -133,11 +159,11 @@ Contributions are welcome, whether it's:
 <!-- Add testing instructions -->
 
 ```sh
-docker compose -f docker-compose.test.yml up -d
+docker compose --profile test up -d
 npm test
 ```
 
-The test compose starts Mealie (SQLite), a mock Open Food Facts server, and the estimator.
+The test profile starts Mealie (SQLite), a mock Open Food Facts server, and the estimator.
 
 ### Build
 

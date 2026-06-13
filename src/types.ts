@@ -39,6 +39,13 @@ export interface MealieNutrition {
   unsaturatedFatContent: string | null
 }
 
+export interface MealieTag {
+  id: string
+  name: string
+  slug: string
+  groupId: string | null
+}
+
 export interface MealieRecipe {
   slug: string
   name: string
@@ -46,12 +53,14 @@ export interface MealieRecipe {
   recipeServings: number | null
   recipeIngredient: MealieIngredient[]
   nutrition: MealieNutrition | null
+  tags: MealieTag[] | null
   extras: Record<string, string> | null
 }
 
 export interface MealieRecipePatch {
   nutrition?: Partial<MealieNutrition>
   extras?: Record<string, string>
+  tags?: MealieTag[]
 }
 
 export interface OffSearchResult {

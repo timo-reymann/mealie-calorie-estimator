@@ -2,7 +2,7 @@ import http from "node:http"
 import https from "node:https"
 import { config } from "../config.js"
 import { logger } from "../utils/logger.js"
-import type { MealieRecipe, MealieRecipePatch } from "../types.js"
+import type { MealieRecipe, MealieRecipePatch, MealieTag } from "../types.js"
 
 const parsedBase = new URL(config.mealie.url)
 const isHttps = parsedBase.protocol === "https:"
@@ -115,4 +115,28 @@ export async function getAllRecipes(): Promise<string[]> {
   }
 
   return slugs
+}
+
+interface TagsPagination {
+  items: MealieTag[]
+  total: number
+  page: number
+  total_pages: number
+}
+
+export async function getOrCreateTags(names: string[]): Promise<MealieTag[]> {
+  const tags: MealieTag[] = []
+  for (const name of names) {
+    try {
+      const tag = await request<MealieTag>("POST", "/api/organizers/tags", JSON.stringify({ name }))
+      tags.push(tag)
+    } catch {
+      const all = await request<TagsPagination>("GET", "/api/organizers/tags?perPage=-1")
+      const existing = all.items.find((t) => t.name === name)
+      if (existing) {
+        tags.push(existing)
+      }
+    }
+  }
+  return tags
 }

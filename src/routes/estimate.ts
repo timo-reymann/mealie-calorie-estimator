@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify"
-import { getRecipe, patchRecipe } from "../services/mealie-client.js"
-import { computeIngredientHash, estimateRecipe, buildNutritionPatch } from "../services/estimator.js"
+import { getRecipe } from "../services/mealie-client.js"
+import { computeIngredientHash } from "../services/estimator.js"
+import { estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 
 async function processEstimate(slug: string): Promise<void> {
@@ -9,11 +10,9 @@ async function processEstimate(slug: string): Promise<void> {
 
     const recipe = await getRecipe(slug)
     const hash = computeIngredientHash(recipe)
-    const result = await estimateRecipe(recipe)
-    const patch = buildNutritionPatch(result, hash, recipe.recipeYield)
-    await patchRecipe(slug, patch)
+    const { calories, tagSlugs } = await estimateAndTag(recipe, hash)
 
-    logger.info({ slug, calories: result.perServingNutrients.kcalPer100g }, "On-demand estimation complete")
+    logger.info({ slug, calories, tags: tagSlugs }, "On-demand estimation complete")
   } catch (err) {
     logger.error({ slug, err }, "Estimate background processing failed")
   }
