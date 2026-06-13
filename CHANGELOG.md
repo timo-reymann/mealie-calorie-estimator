@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.1.0...v1.2.0) (2026-06-13)
+
+### Features
+
+* use docker orb for readme update, default to mistral ([e69af1d](https://github.com/timo-reymann/mealie-calorie-estimator/commit/e69af1d925b6162d275ea5a349785be7dd1b8343))
+
 ## [1.1.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.0.1...v1.1.0) (2026-06-13)
 
 ### Features
