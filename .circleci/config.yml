@@ -24,6 +24,8 @@ jobs:
       - checkout
       - node/install-packages:
           pkg-manager: npm
+          cache-version: 2
+          npm-install-command: npm install
       - run:
           name: Install platform-specific native binding
           command: npm install @rolldown/binding-linux-x64-gnu --no-save
