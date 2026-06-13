@@ -18,9 +18,9 @@ export const config = {
 
   llm: {
     enabled: (process.env.LLM_ENABLED || "false").toLowerCase() === "true",
-    baseUrl: process.env.LLM_BASE_URL || "https://api.openai.com/v1",
+    baseUrl: process.env.LLM_BASE_URL || "https://api.mistral.ai/v1",
     apiKey: process.env.LLM_API_KEY || "",
-    model: process.env.LLM_MODEL || "gpt-4o-mini",
+    model: process.env.LLM_MODEL || "mistral-small-latest",
     rateLimit: parseInt(process.env.LLM_RATE_LIMIT || "30", 10),
   },
 

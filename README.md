@@ -41,7 +41,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
      mealie:
        # mealie configuration
      calorie-estimator:
-       build: .
+       image: timoreymann/mealie-calorie-estimator:latest
        container_name: mealie-calorie-estimator
        restart: unless-stopped
        depends_on:
@@ -55,7 +55,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
    ```
 2. Or run standalone
    ```bash
-   docker compose up --build -d
+   docker compose up -d
    ```
 
 ### Environment Variables
@@ -68,8 +68,8 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `OFF_BASE_URL` | `https://world.openfoodfacts.org` | Open Food Facts base URL |
 | `LLM_ENABLED` | `false` | Enable LLM fallback for custom units and unmatched foods |
 | `LLM_API_KEY` | — | API key for OpenAI-compatible endpoint |
-| `LLM_BASE_URL` | `https://api.openai.com/v1` | LLM API base URL |
-| `LLM_MODEL` | `gpt-4o-mini` | Model name |
+| `LLM_BASE_URL` | `https://api.mistral.ai/v1` | LLM API base URL |
+| `LLM_MODEL` | `mistral-small-latest` | Model name |
 | `PORT` | `8000` | Server port |
 | `LOG_LEVEL` | `info` | Pino log level |
 
