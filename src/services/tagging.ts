@@ -79,3 +79,18 @@ export function mergeTags(
   const userTags = (recipe.tags || []).filter(t => !oldSlugs.includes(t.slug))
   return [...userTags, ...autoTags]
 }
+
+export function tagsAreComplete(recipe: MealieRecipe): boolean {
+  const slugs: string[] = JSON.parse(recipe.extras?.calorie_estimator_tags || "[]")
+  const currentSlugs = (recipe.tags || []).map(t => t.slug)
+  return slugs.length > 0 && slugs.every(s => currentSlugs.includes(s))
+}
+
+export async function resolveAndMergeTags(
+  recipe: MealieRecipe,
+  perServing: NutrientSet,
+): Promise<{ tags: MealieTag[]; tagSlugs: string[] }> {
+  const { tags: autoTags, slugs: oldSlugs } = await resolveAutoTags(recipe, perServing)
+  const merged = mergeTags(recipe, autoTags, oldSlugs)
+  return { tags: merged, tagSlugs: autoTags.map(t => t.slug) }
+}

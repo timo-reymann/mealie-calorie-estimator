@@ -8,7 +8,7 @@ import {
   hasManualCalories,
   buildManualAckPatch,
 } from "../services/estimator.js"
-import { perServingFromRecipeNutrition, resolveAutoTags, mergeTags } from "../services/tagging.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 
 function isEventRecipeData(v: unknown): v is EventRecipeData {
@@ -34,25 +34,18 @@ async function processWebhook(slug: string): Promise<void> {
     const existingHash = recipe.extras?.calorie_estimator_hash
 
     if (existingHash === hash) {
-      const perServing = perServingFromRecipeNutrition(recipe.nutrition)
-      const { tags: autoTags } = await resolveAutoTags(recipe, perServing)
-      const existingAutoSlugs: string[] = JSON.parse(recipe.extras?.calorie_estimator_tags || "[]")
-      const currentTagSlugs = (recipe.tags || []).map(t => t.slug)
-
-      if (existingAutoSlugs.length > 0 && existingAutoSlugs.every(s => currentTagSlugs.includes(s))) {
+      if (tagsAreComplete(recipe)) {
         logger.info({ slug }, "Tags up to date, skipping")
         return
       }
 
-      const merged = mergeTags(recipe, autoTags, existingAutoSlugs)
+      const perServing = perServingFromRecipeNutrition(recipe.nutrition)
+      const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing)
       await patchRecipe(slug, {
-        tags: merged,
-        extras: {
-          ...recipe.extras,
-          calorie_estimator_tags: JSON.stringify(autoTags.map(t => t.slug)),
-        },
+        tags,
+        extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
       })
-      logger.info({ slug, tags: autoTags.map(t => t.name) }, "Added missing auto-tags")
+      logger.info({ slug, tags: tagSlugs }, "Added missing auto-tags")
       return
     }
 
@@ -66,19 +59,14 @@ async function processWebhook(slug: string): Promise<void> {
     const result = await estimateRecipe(recipe)
     const nutritionPatch = buildNutritionPatch(result, hash, recipe.recipeYield)
 
-    const { tags: autoTags, slugs: oldAutoSlugs } = await resolveAutoTags(recipe, result.perServingNutrients)
-    const merged = mergeTags(recipe, autoTags, oldAutoSlugs)
-
+    const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients)
     await patchRecipe(slug, {
       ...nutritionPatch,
-      tags: merged,
-      extras: {
-        ...nutritionPatch.extras,
-        calorie_estimator_tags: JSON.stringify(autoTags.map(t => t.slug)),
-      },
+      tags,
+      extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
     })
 
-    logger.info({ slug, calories: result.perServingNutrients.kcalPer100g, tags: autoTags.map(t => t.name) }, "Updated recipe nutrition and tags")
+    logger.info({ slug, calories: result.perServingNutrients.kcalPer100g, tags: tagSlugs }, "Updated recipe nutrition and tags")
   } catch (err) {
     logger.error({ slug, err }, "Webhook background processing failed")
   }

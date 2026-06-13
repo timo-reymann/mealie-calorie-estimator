@@ -5,6 +5,7 @@ import {
   computeTags,
   perServingFromRecipeNutrition,
   mergeTags,
+  tagsAreComplete,
 } from "../src/services/tagging.js"
 import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe } from "../src/types.js"
 
@@ -19,6 +20,19 @@ function n(kcal: number, p: Partial<NutrientSet> = {}): NutrientSet {
 
 function tag(name: string, slug: string): MealieTag {
   return { id: slug, name, slug, groupId: null }
+}
+
+function makeRecipe(tags: MealieTag[], extrasSlugs?: string[]): MealieRecipe {
+  return {
+    slug: "test",
+    name: "Test",
+    recipeYield: null,
+    recipeServings: null,
+    recipeIngredient: [],
+    nutrition: null,
+    tags,
+    extras: extrasSlugs ? { calorie_estimator_tags: JSON.stringify(extrasSlugs) } : {},
+  }
 }
 
 describe("getCalorieTag", () => {
@@ -178,19 +192,6 @@ describe("perServingFromRecipeNutrition", () => {
 })
 
 describe("mergeTags", () => {
-  function makeRecipe(tags: MealieTag[], extrasSlugs?: string[]): MealieRecipe {
-    return {
-      slug: "test",
-      name: "Test",
-      recipeYield: null,
-      recipeServings: null,
-      recipeIngredient: [],
-      nutrition: null,
-      tags,
-      extras: extrasSlugs ? { calorie_estimator_tags: JSON.stringify(extrasSlugs) } : {},
-    }
-  }
-
   it("preserves user tags and adds auto tags", () => {
     const userTags = [tag("UserTag", "usertag")]
     const recipe = makeRecipe(userTags, ["calories-light"])
@@ -239,5 +240,42 @@ describe("mergeTags", () => {
 
     const result = mergeTags(recipe, [tag("Calories:Light", "calories-light")], [])
     expect(result).toHaveLength(1)
+  })
+})
+
+describe("tagsAreComplete", () => {
+  it("returns true when all auto-tags are present", () => {
+    const recipe = makeRecipe(
+      [tag("Calories:Light", "calories-light"), tag("Digest:Easy", "digest-easy")],
+      ["calories-light", "digest-easy"],
+    )
+    expect(tagsAreComplete(recipe)).toBe(true)
+  })
+
+  it("returns false when auto-tags are missing from recipe tags", () => {
+    const recipe = makeRecipe(
+      [tag("Calories:Light", "calories-light")],
+      ["calories-light", "digest-easy"],
+    )
+    expect(tagsAreComplete(recipe)).toBe(false)
+  })
+
+  it("returns false when no auto-tags stored (upgrade from old version)", () => {
+    const recipe = makeRecipe(
+      [tag("Calories:Light", "calories-light")],
+      [],
+    )
+    expect(tagsAreComplete(recipe)).toBe(false)
+  })
+
+  it("returns false when extras is empty", () => {
+    const recipe = makeRecipe([], [])
+    expect(tagsAreComplete(recipe)).toBe(false)
+  })
+
+  it("returns false when extras is null", () => {
+    const recipe = makeRecipe([], [])
+    recipe.extras = null
+    expect(tagsAreComplete(recipe)).toBe(false)
   })
 })
