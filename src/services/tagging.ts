@@ -1,4 +1,4 @@
-import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe, EstimateResult } from "../types.js"
+import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe } from "../types.js"
 import { getOrCreateTags, patchRecipe } from "./mealie-client.js"
 import { estimateRecipe, buildNutritionPatch } from "./estimator.js"
 
