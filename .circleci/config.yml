@@ -63,6 +63,20 @@ jobs:
       - docker/push:
           image: timoreymann/mealie-calorie-estimator
           tag: latest,${CIRCLE_TAG}
+      - run:
+          name: Update Docker Hub description
+          command: |
+            JWT=$(curl -s -X POST \
+              -d "username=${DOCKER_USERNAME}&password=${DOCKER_TOKEN}" \
+              https://hub.docker.com/v2/users/login/ | \
+              python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+            DESCRIPTION=$(python3 -c "import json; print(json.dumps(open('README.md').read()))")
+            curl -s -o /dev/null -X PATCH \
+              -H "Authorization: JWT ${JWT}" \
+              -H "Content-Type: application/json" \
+              -d "{\"full_description\": ${DESCRIPTION}}" \
+              "https://hub.docker.com/v2/repositories/timoreymann/mealie-calorie-estimator/"
+            echo "Docker Hub description updated"
 
 workflows:
   version: 2
