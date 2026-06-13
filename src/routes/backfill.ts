@@ -49,7 +49,7 @@ async function processBackfill(): Promise<void> {
           continue
         }
 
-        const { tagSlugs } = await estimateAndTag(recipe, hash)
+        await estimateAndTag(recipe, hash)
         updated++
       } catch (err) {
         errors++
