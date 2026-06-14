@@ -1,3 +1,9 @@
+## [1.5.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.4.0...v1.5.0) (2026-06-14)
+
+### Features
+
+* add Digest:Moderate tag for middle-ground recipes ([ad39eee](https://github.com/timo-reymann/mealie-calorie-estimator/commit/ad39eee1ab3a3e956e6b0afc4518b8cff24dff20))
+
 ## [1.4.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.3.1...v1.4.0) (2026-06-13)
 
 ### Features
