@@ -84,14 +84,19 @@ describe("getDigestibilityTag", () => {
     expect(getDigestibilityTag(nutrients)).toBe("Digest:Slow")
   })
 
-  it("returns Unknown Digest for moderate fat and heavy calories", () => {
+  it("returns Moderate Digest for moderate fat and heavy calories", () => {
     const nutrients = n(700, { fatPer100g: 25 }) // 25*9/700 = 32.1% - between 30-40%
-    expect(getDigestibilityTag(nutrients)).toBe("Digest:Unknown")
+    expect(getDigestibilityTag(nutrients)).toBe("Digest:Moderate")
   })
 
-  it("returns Unknown Digest for middle ground (fat 35%)", () => {
+  it("returns Moderate Digest for middle ground (fat 35%)", () => {
     const nutrients = n(500, { fatPer100g: 19.44 }) // 19.44*9/500 = 35%
-    expect(getDigestibilityTag(nutrients)).toBe("Digest:Unknown")
+    expect(getDigestibilityTag(nutrients)).toBe("Digest:Moderate")
+  })
+
+  it("returns Moderate Digest for low-fat but calorie-dense meals", () => {
+    const nutrients = n(800, { fatPer100g: 20 }) // 20*9/800 = 22.5% fat but kcal > 600
+    expect(getDigestibilityTag(nutrients)).toBe("Digest:Moderate")
   })
 
   it("returns Unknown Digest when kcal is null", () => {
@@ -128,10 +133,10 @@ describe("computeTags", () => {
     expect(tags).toEqual(["Digest:Unknown"])
   })
 
-  it("includes calorie tag even when digest is unknown", () => {
+  it("includes calorie tag with moderate digest for middle-ground data", () => {
     const nutrients = n(700, { fatPer100g: 25 })
     const tags = computeTags(nutrients)
-    expect(tags).toEqual(["Calories:Hearty", "Digest:Unknown"])
+    expect(tags).toEqual(["Calories:Hearty", "Digest:Moderate"])
   })
 
   it("returns Heavy and Slow Digest for high calorie high fat", () => {

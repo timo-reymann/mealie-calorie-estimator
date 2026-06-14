@@ -57,7 +57,8 @@ Every estimated recipe gets up to two auto-tags applied in Mealie: one for calor
 |---|---|
 | `Digest:Easy` | fat < 30% of calories AND kcal ≤ 600 |
 | `Digest:Slow` | fat ≥ 40% of calories |
-| `Digest:Unknown` | missing data or middle ground |
+| `Digest:Moderate` | anything in between (e.g. fat 30–40%, or low-fat but calorie-dense) |
+| `Digest:Unknown` | missing fat or calorie data |
 
 The digestibility heuristic relies on per-serving fat and calorie data — high fat indicates slow digestion, low fat with moderate calories indicates a lighter meal.
 

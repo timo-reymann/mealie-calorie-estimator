@@ -20,7 +20,7 @@ export function getDigestibilityTag(nutrients: NutrientSet): string {
   if (fatCalPct < 30 && kcalPer100g <= 600) return "Digest:Easy"
   if (fatCalPct >= 40) return "Digest:Slow"
 
-  return "Digest:Unknown"
+  return "Digest:Moderate"
 }
 
 export function computeTags(perServing: NutrientSet): string[] {
