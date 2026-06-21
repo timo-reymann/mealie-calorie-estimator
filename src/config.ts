@@ -1,3 +1,5 @@
+import { version } from "../package.json"
+
 export const config = {
   port: parseInt(process.env.PORT || "8000", 10),
 
@@ -13,7 +15,7 @@ export const config = {
     searchRateLimit: parseInt(process.env.OFF_SEARCH_RATE_LIMIT || "10", 10),
     productRateLimit: parseInt(process.env.OFF_PRODUCT_RATE_LIMIT || "15", 10),
     cacheTtlMs: parseInt(process.env.OFF_CACHE_TTL || "86400", 10) * 1000,
-    userAgent: process.env.OFF_USER_AGENT || "MealieCalorieEstimator/1.0 (calories@example.com)",
+    userAgent: process.env.OFF_USER_AGENT || `mealie-calorie-estimator/${version} (mail@timo-reymann.de)`,
   },
 
   llm: {
