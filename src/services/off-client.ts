@@ -2,7 +2,7 @@ import { config } from "../config.js"
 import { logger } from "../utils/logger.js"
 import { getCachedNutrients, setCachedNutrients } from "../utils/cache.js"
 import { waitForRateLimit, RateLimitType } from "../utils/rate-limiter.js"
-import type { OffNutriments, OffProduct, NutrientSet } from "../types.js"
+import type { OffNutriments, OffProduct, OffSearchResult, NutrientSet } from "../types.js"
 
 export interface OffLookupResult {
   nutrients: NutrientSet | null
@@ -10,19 +10,36 @@ export interface OffLookupResult {
   productName: string | null
 }
 
-const OFF_NUTRIENT_FIELDS = [
-  "product_name",
-  "nutriments.energy-kcal_100g",
-  "nutriments.proteins_100g",
-  "nutriments.carbohydrates_100g",
-  "nutriments.fat_100g",
-  "nutriments.saturated-fat_100g",
-  "nutriments.trans-fat_100g",
-  "nutriments.fiber_100g",
-  "nutriments.sugars_100g",
-  "nutriments.sodium_100g",
-  "nutriments.cholesterol_100g",
-].join(",")
+const OFF_NUTRIENT_FIELDS = ["product_name", "nutriments"].join(",")
+
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
+
+async function fetchWithRetry(url: string, query: string): Promise<Response | null> {
+  const { maxRetries, retryBackoffMs, userAgent } = config.openFoodFacts
+  let lastResponse: Response | null = null
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      const delay = retryBackoffMs * 2 ** (attempt - 1)
+      logger.debug({ query, attempt, delay }, "Retrying OFF search after backoff")
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": userAgent } })
+      if (res.ok || !RETRYABLE_STATUS.has(res.status)) {
+        return res
+      }
+      lastResponse = res
+      logger.debug({ query, attempt, status: res.status }, "OFF search returned retryable status")
+    } catch (err) {
+      lastResponse = null
+      logger.debug({ query, attempt, err: (err as Error).message }, "OFF search request failed")
+    }
+  }
+
+  return lastResponse
+}
 
 function extractNutrients(n: OffNutriments): NutrientSet {
   const fat = n["fat_100g"] ?? null
@@ -53,39 +70,41 @@ function extractNutrients(n: OffNutriments): NutrientSet {
 
 async function searchProduct(query: string): Promise<OffProduct | null> {
   const params = new URLSearchParams({
-    search_terms: query,
-    lang: config.openFoodFacts.language,
+    q: query,
+    langs: config.openFoodFacts.language,
     page_size: "1",
-    json: "1",
     fields: OFF_NUTRIENT_FIELDS,
   })
 
-  const url = `${config.openFoodFacts.baseUrl}/cgi/search.pl?${params}`
+  const url = `${config.openFoodFacts.searchBaseUrl}/search?${params}`
 
   await waitForRateLimit(RateLimitType.Search)
 
-  const res = await fetch(url, {
-    headers: { "User-Agent": config.openFoodFacts.userAgent },
-  })
+  const res = await fetchWithRetry(url, query)
+
+  if (!res) {
+    logger.warn({ query }, "OFF search failed after retries")
+    return null
+  }
 
   if (!res.ok) {
     logger.warn({ status: res.status, query }, "OFF search returned error")
     return null
   }
 
-  let data: any
+  let data: OffSearchResult
   try {
-    data = await res.json()
+    data = (await res.json()) as OffSearchResult
   } catch {
     logger.warn({ query }, "OFF returned non-JSON response")
     return null
   }
 
-  if (!data.products || data.products.length === 0) {
+  if (!data.hits || data.hits.length === 0) {
     return null
   }
 
-  return data.products[0] as OffProduct
+  return data.hits[0]
 }
 
 export async function lookupNutrients(foodName: string, unitName?: string): Promise<OffLookupResult> {

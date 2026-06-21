@@ -64,8 +64,11 @@ export interface MealieRecipePatch {
 }
 
 export interface OffSearchResult {
-  count: number
-  products: OffProduct[]
+  hits: OffProduct[]
+  count?: number
+  page?: number
+  page_count?: number
+  page_size?: number
 }
 
 export interface OffProduct {
