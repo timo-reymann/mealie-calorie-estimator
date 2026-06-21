@@ -1,3 +1,9 @@
+## [1.5.4](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.5.3...v1.5.4) (2026-06-21)
+
+### Bug Fixes
+
+* bump package.json version on release for accurate user agent ([#9](https://github.com/timo-reymann/mealie-calorie-estimator/issues/9)) ([7f1def0](https://github.com/timo-reymann/mealie-calorie-estimator/commit/7f1def098c598e05f8fbecd02aa5f6840c6f1dc2)), closes [#7](https://github.com/timo-reymann/mealie-calorie-estimator/issues/7)
+
 ## [1.5.3](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.5.2...v1.5.3) (2026-06-21)
 
 ### Bug Fixes
