@@ -11,10 +11,13 @@ export const config = {
 
   openFoodFacts: {
     baseUrl: process.env.OFF_BASE_URL || "https://world.openfoodfacts.org",
+    searchBaseUrl: process.env.OFF_SEARCH_BASE_URL || "https://search.openfoodfacts.org",
     language: process.env.OFF_LANGUAGE || "de",
     searchRateLimit: parseInt(process.env.OFF_SEARCH_RATE_LIMIT || "10", 10),
     productRateLimit: parseInt(process.env.OFF_PRODUCT_RATE_LIMIT || "15", 10),
     cacheTtlMs: parseInt(process.env.OFF_CACHE_TTL || "86400", 10) * 1000,
+    maxRetries: parseInt(process.env.OFF_MAX_RETRIES || "3", 10),
+    retryBackoffMs: parseInt(process.env.OFF_RETRY_BACKOFF_MS || "500", 10),
     userAgent: process.env.OFF_USER_AGENT || `mealie-calorie-estimator/${version} (mail@timo-reymann.de)`,
   },
 

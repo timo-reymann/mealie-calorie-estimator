@@ -101,8 +101,11 @@ It's recommended to install it next to your Mealie instance using docker-compose
 |---|---|---|
 | `MEALIE_URL` | `http://mealie:9000` | Mealie instance URL |
 | `MEALIE_API_TOKEN` | — | **Required.** Mealie service account token |
-| `OFF_LANGUAGE` | `de` | Open Food Facts language |
+| `OFF_LANGUAGE` | `de` | Open Food Facts search language(s) |
+| `OFF_SEARCH_BASE_URL` | `https://search.openfoodfacts.org` | Open Food Facts search API base URL |
 | `OFF_BASE_URL` | `https://world.openfoodfacts.org` | Open Food Facts base URL |
+| `OFF_MAX_RETRIES` | `3` | Retries for transient OFF search errors (429/5xx) |
+| `OFF_RETRY_BACKOFF_MS` | `500` | Base backoff between retries (doubles each attempt) |
 | `LLM_ENABLED` | `false` | Enable LLM fallback for custom units and unmatched foods |
 | `LLM_API_KEY` | — | API key for OpenAI-compatible endpoint |
 | `LLM_BASE_URL` | `https://api.mistral.ai/v1` | LLM API base URL |
