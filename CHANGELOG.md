@@ -1,3 +1,9 @@
+## [1.5.2](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.5.1...v1.5.2) (2026-06-21)
+
+### Bug Fixes
+
+* use OFF Search-a-licious API with retry and backoff ([#6](https://github.com/timo-reymann/mealie-calorie-estimator/issues/6)) ([#8](https://github.com/timo-reymann/mealie-calorie-estimator/issues/8)) ([722e03b](https://github.com/timo-reymann/mealie-calorie-estimator/commit/722e03b23732ee239a699d0a90a40b5ad433b9ed))
+
 ## [1.5.1](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.5.0...v1.5.1) (2026-06-21)
 
 ### Bug Fixes
