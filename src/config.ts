@@ -1,4 +1,5 @@
-import { version } from "../package.json"
+import { createRequire } from "module"
+const { version } = createRequire(import.meta.url)("../package.json")
 
 export const config = {
   port: parseInt(process.env.PORT || "8000", 10),
