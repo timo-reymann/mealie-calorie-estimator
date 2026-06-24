@@ -32,6 +32,7 @@ function makeRecipe(tags: MealieTag[], extrasSlugs?: string[]): MealieRecipe {
     nutrition: null,
     tags,
     extras: extrasSlugs ? { calorie_estimator_tags: JSON.stringify(extrasSlugs) } : {},
+    householdId: null,
   }
 }
 

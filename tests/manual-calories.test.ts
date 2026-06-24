@@ -19,6 +19,7 @@ function makeRecipe(overrides: Partial<MealieRecipe> = {}): MealieRecipe {
     nutrition: null,
     tags: [],
     extras: {},
+    householdId: null,
     ...overrides,
   }
 }
