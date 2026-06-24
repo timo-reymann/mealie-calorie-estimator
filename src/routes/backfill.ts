@@ -33,23 +33,23 @@ async function processBackfill(): Promise<void> {
           }
 
           const perServing = perServingFromRecipeNutrition(recipe.nutrition)
-          const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing)
+          const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, recipe.householdId)
           await patchRecipe(slug, {
             tags,
             extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
-          })
+          }, recipe.householdId)
           tagOnly++
           continue
         }
 
         if (hasManualCalories(recipe)) {
           const patch = buildManualAckPatch(recipe, hash)
-          await patchRecipe(slug, patch)
+          await patchRecipe(slug, patch, recipe.householdId)
           manual++
           continue
         }
 
-        await estimateAndTag(recipe, hash)
+        await estimateAndTag(recipe, hash, recipe.householdId)
         updated++
       } catch (err) {
         errors++

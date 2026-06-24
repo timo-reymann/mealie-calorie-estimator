@@ -38,11 +38,11 @@ async function processWebhook(slug: string): Promise<void> {
       }
 
       const perServing = perServingFromRecipeNutrition(recipe.nutrition)
-      const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing)
+      const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, recipe.householdId)
       await patchRecipe(slug, {
         tags,
         extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
-      })
+      }, recipe.householdId)
       logger.info({ slug, tags: tagSlugs }, "Added missing auto-tags")
       return
     }
@@ -50,11 +50,11 @@ async function processWebhook(slug: string): Promise<void> {
     if (hasManualCalories(recipe)) {
       logger.info({ slug, calories: recipe.nutrition?.calories }, "Manual calories detected, acknowledging without overwriting")
       const patch = buildManualAckPatch(recipe, hash)
-      await patchRecipe(slug, patch)
+      await patchRecipe(slug, patch, recipe.householdId)
       return
     }
 
-    const { calories, tagSlugs } = await estimateAndTag(recipe, hash)
+    const { calories, tagSlugs } = await estimateAndTag(recipe, hash, recipe.householdId)
     logger.info({ slug, calories, tags: tagSlugs }, "Updated recipe nutrition and tags")
   } catch (err) {
     logger.error({ slug, err }, "Webhook background processing failed")
