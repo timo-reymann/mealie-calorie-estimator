@@ -10,7 +10,7 @@ async function processEstimate(slug: string): Promise<void> {
 
     const recipe = await getRecipe(slug)
     const hash = computeIngredientHash(recipe)
-    const { calories, tagSlugs } = await estimateAndTag(recipe, hash)
+    const { calories, tagSlugs } = await estimateAndTag(recipe, hash, recipe.householdId)
 
     logger.info({ slug, calories, tags: tagSlugs }, "On-demand estimation complete")
   } catch (err) {
