@@ -55,7 +55,8 @@ export interface MealieRecipe {
   nutrition: MealieNutrition | null
   tags: MealieTag[] | null
   extras: Record<string, string> | null
-  householdId: string | null
+  householdId?: string | null
+  household_id?: string | null
 }
 
 export interface MealieRecipePatch {

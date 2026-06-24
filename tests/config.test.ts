@@ -51,4 +51,11 @@ describe("getMealieToken", () => {
     const result = getMealieToken("a b.c")
     expect(result).toBe("special-token")
   })
+
+  it("falls back to first MEALIE_API_TOKEN_* when no default token set", async () => {
+    delete process.env.MEALIE_API_TOKEN
+    process.env.MEALIE_API_TOKEN_FALLBACK_HOUSE = "fallback-token"
+    const { getMealieToken: gt } = await import("../src/config.js")
+    expect(gt()).toBe("fallback-token")
+  })
 })

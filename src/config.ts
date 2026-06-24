@@ -12,7 +12,14 @@ export function getMealieToken(householdId?: string | null): string {
     if (token) return token
   }
 
-  return config.mealie.apiToken
+  if (config.mealie.apiToken) return config.mealie.apiToken
+
+  const fallbackKey = Object.keys(process.env).find((k) =>
+    k.startsWith("MEALIE_API_TOKEN_"),
+  )
+  if (fallbackKey) return process.env[fallbackKey]!
+
+  return ""
 }
 
 function hasAnyToken(): boolean {

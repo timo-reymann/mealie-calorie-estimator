@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify"
 import type { AppriseWebhookPayload, EventRecipeData } from "../types.js"
-import { getRecipe, patchRecipe } from "../services/mealie-client.js"
+import { getRecipe, getRecipeHouseholdId, patchRecipe } from "../services/mealie-client.js"
 import {
   computeIngredientHash,
   hasManualCalories,
@@ -27,6 +27,7 @@ function normalizeEventData(raw: Record<string, unknown>): EventRecipeData {
 async function processWebhook(slug: string): Promise<void> {
   try {
     const recipe = await getRecipe(slug)
+    const householdId = getRecipeHouseholdId(recipe)
 
     const hash = computeIngredientHash(recipe)
     const existingHash = recipe.extras?.calorie_estimator_hash
@@ -38,11 +39,11 @@ async function processWebhook(slug: string): Promise<void> {
       }
 
       const perServing = perServingFromRecipeNutrition(recipe.nutrition)
-      const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, recipe.householdId)
+      const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, householdId)
       await patchRecipe(slug, {
         tags,
         extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
-      }, recipe.householdId)
+      }, householdId)
       logger.info({ slug, tags: tagSlugs }, "Added missing auto-tags")
       return
     }
@@ -50,11 +51,11 @@ async function processWebhook(slug: string): Promise<void> {
     if (hasManualCalories(recipe)) {
       logger.info({ slug, calories: recipe.nutrition?.calories }, "Manual calories detected, acknowledging without overwriting")
       const patch = buildManualAckPatch(recipe, hash)
-      await patchRecipe(slug, patch, recipe.householdId)
+      await patchRecipe(slug, patch, householdId)
       return
     }
 
-    const { calories, tagSlugs } = await estimateAndTag(recipe, hash, recipe.householdId)
+    const { calories, tagSlugs } = await estimateAndTag(recipe, hash, householdId)
     logger.info({ slug, calories, tags: tagSlugs }, "Updated recipe nutrition and tags")
   } catch (err) {
     logger.error({ slug, err }, "Webhook background processing failed")

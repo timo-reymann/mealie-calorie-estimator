@@ -84,9 +84,14 @@ function request<T>(
   })
 }
 
-export async function getRecipe(slug: string): Promise<MealieRecipe> {
-  logger.debug({ slug }, "Fetching recipe from Mealie")
-  return request<MealieRecipe>("GET", `/api/recipes/${slug}`)
+export function getRecipeHouseholdId(recipe: MealieRecipe): string | null {
+  return recipe.householdId ?? recipe.household_id ?? null
+}
+
+export async function getRecipe(slug: string, householdId?: string | null): Promise<MealieRecipe> {
+  logger.debug({ slug, householdId }, "Fetching recipe from Mealie")
+  const token = getMealieToken(householdId)
+  return request<MealieRecipe>("GET", `/api/recipes/${slug}`, undefined, token)
 }
 
 export async function patchRecipe(slug: string, patch: MealieRecipePatch, householdId?: string | null): Promise<void> {
@@ -95,10 +100,11 @@ export async function patchRecipe(slug: string, patch: MealieRecipePatch, househ
   await request("PATCH", `/api/recipes/${slug}`, JSON.stringify(patch), token)
 }
 
-export async function getAllRecipes(): Promise<string[]> {
+export async function getAllRecipes(householdId?: string | null): Promise<string[]> {
   const slugs: string[] = []
   let page = 1
   const perPage = 100
+  const token = getMealieToken(householdId)
 
   while (true) {
     const data = await request<{
@@ -106,7 +112,7 @@ export async function getAllRecipes(): Promise<string[]> {
       total: number
       page: number
       total_pages: number
-    }>("GET", `/api/recipes?page=${page}&per_page=${perPage}&order_direction=asc`)
+    }>("GET", `/api/recipes?page=${page}&per_page=${perPage}&order_direction=asc`, undefined, token)
 
     for (const item of data.items) {
       slugs.push(item.slug)

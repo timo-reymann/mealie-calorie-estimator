@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify"
-import { getAllRecipes, getRecipe, patchRecipe } from "../services/mealie-client.js"
+import { getAllRecipes, getRecipe, getRecipeHouseholdId, patchRecipe } from "../services/mealie-client.js"
 import {
   computeIngredientHash,
   hasManualCalories,
@@ -23,6 +23,7 @@ async function processBackfill(): Promise<void> {
 
       try {
         const recipe = await getRecipe(slug)
+        const householdId = getRecipeHouseholdId(recipe)
         const hash = computeIngredientHash(recipe)
         const existingHash = recipe.extras?.calorie_estimator_hash
 
@@ -33,23 +34,23 @@ async function processBackfill(): Promise<void> {
           }
 
           const perServing = perServingFromRecipeNutrition(recipe.nutrition)
-          const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, recipe.householdId)
+          const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, householdId)
           await patchRecipe(slug, {
             tags,
             extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
-          }, recipe.householdId)
+          }, householdId)
           tagOnly++
           continue
         }
 
         if (hasManualCalories(recipe)) {
           const patch = buildManualAckPatch(recipe, hash)
-          await patchRecipe(slug, patch, recipe.householdId)
+          await patchRecipe(slug, patch, householdId)
           manual++
           continue
         }
 
-        await estimateAndTag(recipe, hash, recipe.householdId)
+        await estimateAndTag(recipe, hash, householdId)
         updated++
       } catch (err) {
         errors++
