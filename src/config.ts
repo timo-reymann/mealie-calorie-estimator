@@ -5,9 +5,7 @@ export function getMealieToken(householdId?: string | null): string {
   if (householdId) {
     const key =
       "MEALIE_API_TOKEN_" +
-      householdId
-        .toUpperCase()
-        .replace(/[^A-Z0-9_]/g, "_")
+      householdId.replace(/[^A-Za-z0-9_]/g, "_")
     const token = process.env[key]
     if (token) return token
   }

@@ -101,7 +101,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
 |---|---|---|
 | `MEALIE_URL` | `http://mealie:9000` | Mealie instance URL |
 | `MEALIE_API_TOKEN` | — | **Required.** Default Mealie service account token. Used unless a per-household token matches |
-| `MEALIE_API_TOKEN_<HOUSEHOLD_ID>` | — | Optional per-household token override. Set e.g. `MEALIE_API_TOKEN_my_household` to use a different token for recipes in that household. The household ID from the recipe response is uppercased and non-alphanumeric characters are replaced with `_` for lookup |
+| `MEALIE_API_TOKEN_<HOUSEHOLD_ID>` | — | Optional per-household token override. Set e.g. `MEALIE_API_TOKEN_my_household` to use a different token for recipes in that household. Non-alphanumeric characters in the household ID are replaced with `_` for lookup (e.g. a UUID `f0d4ec80-a7ae-4315-8c43-a3e4ed0ca01f` becomes `MEALIE_API_TOKEN_f0d4ec80_a7ae_4315_8c43_a3e4ed0ca01f`) |
 | `OFF_LANGUAGE` | `de` | Open Food Facts search language(s) |
 | `OFF_SEARCH_BASE_URL` | `https://search.openfoodfacts.org` | Open Food Facts search API base URL |
 | `OFF_BASE_URL` | `https://world.openfoodfacts.org` | Open Food Facts base URL |

@@ -23,7 +23,7 @@ describe("getMealieToken", () => {
   })
 
   it("returns household-specific token when MEALIE_API_TOKEN_<ID> is set", () => {
-    process.env.MEALIE_API_TOKEN_HOUSEHOLD_123 = "house-token-123"
+    process.env.MEALIE_API_TOKEN_household_123 = "house-token-123"
     const result = getMealieToken("household-123")
     expect(result).toBe("house-token-123")
   })
@@ -34,20 +34,20 @@ describe("getMealieToken", () => {
     expect(result).toBe("test-token")
   })
 
-  it("normalizes householdId to uppercase with underscores", () => {
-    process.env.MEALIE_API_TOKEN_ABC_DEF = "normalized-token"
+  it("replaces hyphens with underscores preserving case", () => {
+    process.env.MEALIE_API_TOKEN_abc_def = "normalized-token"
     const result = getMealieToken("abc-def")
     expect(result).toBe("normalized-token")
   })
 
-  it("treats householdId case-insensitively via normalization", () => {
-    process.env.MEALIE_API_TOKEN_MY_HOUSE = "case-token"
+  it("preserves householdId casing in env var lookup", () => {
+    process.env.MEALIE_API_TOKEN_My_House = "case-token"
     const result = getMealieToken("My-House")
     expect(result).toBe("case-token")
   })
 
   it("replaces multiple special chars with underscores", () => {
-    process.env.MEALIE_API_TOKEN_A_B_C = "special-token"
+    process.env.MEALIE_API_TOKEN_a_b_c = "special-token"
     const result = getMealieToken("a b.c")
     expect(result).toBe("special-token")
   })
