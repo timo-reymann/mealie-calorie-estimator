@@ -55,6 +55,7 @@ export interface MealieRecipe {
   nutrition: MealieNutrition | null
   tags: MealieTag[] | null
   extras: Record<string, string> | null
+  householdId: string | null
 }
 
 export interface MealieRecipePatch {
@@ -74,6 +75,7 @@ export interface OffSearchResult {
 export interface OffProduct {
   product_name: string
   nutriments?: OffNutriments
+  nutriscore_grade?: string
 }
 
 export interface OffNutriments {
