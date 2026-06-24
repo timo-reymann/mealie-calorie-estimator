@@ -1,3 +1,17 @@
+## [1.6.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.5.4...v1.6.0) (2026-06-24)
+
+### Features
+
+* add getMealieToken helper and relax startup guard ([f9438f6](https://github.com/timo-reymann/mealie-calorie-estimator/commit/f9438f6c0711b1c989d66ee4011c5e951908cce3))
+* add householdId to MealieRecipe type ([bbf9a1c](https://github.com/timo-reymann/mealie-calorie-estimator/commit/bbf9a1c8a2095ae780f1ef597bd944124cf1eb11))
+* thread per-household token through route handlers ([9f59ec4](https://github.com/timo-reymann/mealie-calorie-estimator/commit/9f59ec472b74d33037bc72ef16ffbe811013f287))
+* thread per-household tokens through mealie-client ([d4cbfd9](https://github.com/timo-reymann/mealie-calorie-estimator/commit/d4cbfd9817e5952cdd4264bb28ae283f6680b0c0))
+* thread per-household tokens through tagging service ([0f9f422](https://github.com/timo-reymann/mealie-calorie-estimator/commit/0f9f42272c98c6ab8da945b57ca93d5d49c0c319))
+
+### Bug Fixes
+
+* accept null householdId in function params ([d7dd7b0](https://github.com/timo-reymann/mealie-calorie-estimator/commit/d7dd7b067f6ab0ecaa93d9fc1ff5fa8d7bec4cfc))
+
 ## [1.5.4](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.5.3...v1.5.4) (2026-06-21)
 
 ### Bug Fixes
