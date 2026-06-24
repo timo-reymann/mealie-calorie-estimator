@@ -1,6 +1,25 @@
 import { createRequire } from "module"
 const { version } = createRequire(import.meta.url)("../package.json")
 
+export function getMealieToken(householdId?: string): string {
+  if (householdId) {
+    const key =
+      "MEALIE_API_TOKEN_" +
+      householdId
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, "_")
+    const token = process.env[key]
+    if (token) return token
+  }
+
+  return config.mealie.apiToken
+}
+
+function hasAnyToken(): boolean {
+  if (process.env.MEALIE_API_TOKEN) return true
+  return Object.keys(process.env).some((k) => k.startsWith("MEALIE_API_TOKEN_"))
+}
+
 export const config = {
   port: parseInt(process.env.PORT || "8000", 10),
 
@@ -37,6 +56,8 @@ export const config = {
   logLevel: process.env.LOG_LEVEL || "info",
 }
 
-if (!config.mealie.apiToken) {
-  throw new Error("MEALIE_API_TOKEN is not set. Estimator cannot start without it.")
+if (!hasAnyToken()) {
+  throw new Error(
+    "No Mealie API token configured. Set MEALIE_API_TOKEN or at least one MEALIE_API_TOKEN_<HOUSEHOLD_ID> environment variable.",
+  )
 }
