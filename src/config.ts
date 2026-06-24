@@ -1,7 +1,7 @@
 import { createRequire } from "module"
 const { version } = createRequire(import.meta.url)("../package.json")
 
-export function getMealieToken(householdId?: string): string {
+export function getMealieToken(householdId?: string | null): string {
   if (householdId) {
     const key =
       "MEALIE_API_TOKEN_" +
