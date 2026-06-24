@@ -65,7 +65,7 @@ export function perServingFromRecipeNutrition(nutrition: MealieNutrition | null)
 export async function resolveAutoTags(
   recipe: MealieRecipe,
   perServing: NutrientSet,
-  householdId?: string,
+  householdId?: string | null,
 ): Promise<{ tags: MealieTag[]; slugs: string[] }> {
   const tagNames = computeTags(perServing)
   const autoTags = await getOrCreateTags(tagNames, householdId)
@@ -92,7 +92,7 @@ export function tagsAreComplete(recipe: MealieRecipe): boolean {
 export async function resolveAndMergeTags(
   recipe: MealieRecipe,
   perServing: NutrientSet,
-  householdId?: string,
+  householdId?: string | null,
 ): Promise<{ tags: MealieTag[]; tagSlugs: string[] }> {
   const { tags: autoTags, slugs: oldSlugs } = await resolveAutoTags(recipe, perServing, householdId)
   const merged = mergeTags(recipe, autoTags, oldSlugs)
@@ -102,7 +102,7 @@ export async function resolveAndMergeTags(
 export async function estimateAndTag(
   recipe: MealieRecipe,
   hash: string,
-  householdId?: string,
+  householdId?: string | null,
 ): Promise<{ calories: number | null; tagSlugs: string[] }> {
   const result = await estimateRecipe(recipe)
   const nutritionPatch = buildNutritionPatch(result, hash, recipe.recipeYield)

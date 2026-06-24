@@ -89,7 +89,7 @@ export async function getRecipe(slug: string): Promise<MealieRecipe> {
   return request<MealieRecipe>("GET", `/api/recipes/${slug}`)
 }
 
-export async function patchRecipe(slug: string, patch: MealieRecipePatch, householdId?: string): Promise<void> {
+export async function patchRecipe(slug: string, patch: MealieRecipePatch, householdId?: string | null): Promise<void> {
   logger.debug({ slug, patch, householdId }, "Patching recipe in Mealie")
   const token = getMealieToken(householdId)
   await request("PATCH", `/api/recipes/${slug}`, JSON.stringify(patch), token)
@@ -126,7 +126,7 @@ interface TagsPagination {
   total_pages: number
 }
 
-export async function getOrCreateTags(names: string[], householdId?: string): Promise<MealieTag[]> {
+export async function getOrCreateTags(names: string[], householdId?: string | null): Promise<MealieTag[]> {
   const tags: MealieTag[] = []
   const token = getMealieToken(householdId)
   for (const name of names) {
