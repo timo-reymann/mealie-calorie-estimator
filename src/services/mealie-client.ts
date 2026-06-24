@@ -1,6 +1,6 @@
 import http from "node:http"
 import https from "node:https"
-import { config } from "../config.js"
+import { config, getMealieToken } from "../config.js"
 import { logger } from "../utils/logger.js"
 import type { MealieRecipe, MealieRecipePatch, MealieTag } from "../types.js"
 
@@ -12,6 +12,7 @@ function request<T>(
   method: string,
   path: string,
   body?: string,
+  token?: string,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -27,7 +28,7 @@ function request<T>(
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${config.mealie.apiToken}`,
+          Authorization: `Bearer ${token ?? config.mealie.apiToken}`,
         },
         timeout: config.mealie.timeoutMs,
       },
@@ -88,9 +89,10 @@ export async function getRecipe(slug: string): Promise<MealieRecipe> {
   return request<MealieRecipe>("GET", `/api/recipes/${slug}`)
 }
 
-export async function patchRecipe(slug: string, patch: MealieRecipePatch): Promise<void> {
-  logger.debug({ slug, patch }, "Patching recipe in Mealie")
-  await request("PATCH", `/api/recipes/${slug}`, JSON.stringify(patch))
+export async function patchRecipe(slug: string, patch: MealieRecipePatch, householdId?: string): Promise<void> {
+  logger.debug({ slug, patch, householdId }, "Patching recipe in Mealie")
+  const token = getMealieToken(householdId)
+  await request("PATCH", `/api/recipes/${slug}`, JSON.stringify(patch), token)
 }
 
 export async function getAllRecipes(): Promise<string[]> {
@@ -124,14 +126,15 @@ interface TagsPagination {
   total_pages: number
 }
 
-export async function getOrCreateTags(names: string[]): Promise<MealieTag[]> {
+export async function getOrCreateTags(names: string[], householdId?: string): Promise<MealieTag[]> {
   const tags: MealieTag[] = []
+  const token = getMealieToken(householdId)
   for (const name of names) {
     try {
-      const tag = await request<MealieTag>("POST", "/api/organizers/tags", JSON.stringify({ name }))
+      const tag = await request<MealieTag>("POST", "/api/organizers/tags", JSON.stringify({ name }), token)
       tags.push(tag)
     } catch {
-      const all = await request<TagsPagination>("GET", "/api/organizers/tags?perPage=-1")
+      const all = await request<TagsPagination>("GET", "/api/organizers/tags?perPage=-1", undefined, token)
       const existing = all.items.find((t) => t.name === name)
       if (existing) {
         tags.push(existing)
