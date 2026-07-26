@@ -7,6 +7,7 @@ x-calorie-env: &calorie-env
   LLM_ENABLED: ${LLM_ENABLED:-false}
   LLM_API_KEY: ${LLM_API_KEY:-}
   LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+  LLM_ENDPOINT_URL: ${LLM_ENDPOINT_URL:-/chat/completions}
   LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
   LLM_RATE_LIMIT: ${LLM_RATE_LIMIT:-30}
   LOG_LEVEL: ${LOG_LEVEL:-info}

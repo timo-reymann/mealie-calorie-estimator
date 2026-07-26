@@ -23,7 +23,7 @@ export async function estimateGrams(quantity: number, unitName: string, foodName
   try {
     await waitForRateLimit(RateLimitType.Llm)
 
-    const res = await fetch(`${config.llm.baseUrl}/chat/completions`, {
+    const res = await fetch(`${config.llm.baseUrl}${config.llm.endpointUrl}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -85,7 +85,7 @@ export async function estimateNutrients(foodName: string): Promise<NutrientSet |
   try {
     await waitForRateLimit(RateLimitType.Llm)
 
-    const res = await fetch(`${config.llm.baseUrl}/chat/completions`, {
+    const res = await fetch(`${config.llm.baseUrl}${config.llm.endpointUrl}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -49,6 +49,7 @@ export const config = {
   llm: {
     enabled: (process.env.LLM_ENABLED || "false").toLowerCase() === "true",
     baseUrl: process.env.LLM_BASE_URL || "https://api.mistral.ai/v1",
+    endpointUrl: process.env.LLM_ENDPOINT_URL || "/chat/completions",
     apiKey: process.env.LLM_API_KEY || "",
     model: process.env.LLM_MODEL || "mistral-small-latest",
     rateLimit: parseInt(process.env.LLM_RATE_LIMIT || "30", 10),
