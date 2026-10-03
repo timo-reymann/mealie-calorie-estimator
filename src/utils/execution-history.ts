@@ -23,6 +23,7 @@ export interface ExecutionEstimate {
 export interface ExecutionRecord {
   id: string
   startedAt: number
+  updatedAt: number
   finishedAt: number | null
   durationMs: number | null
   trigger: ExecutionTrigger
@@ -70,6 +71,7 @@ function update(id: string, mutate: (record: ExecutionRecord) => void): void {
   const record = store.get(id)
   if (!record) return
   mutate(record)
+  record.updatedAt = Date.now()
   store.set(id, record)
   notify()
 }
@@ -104,6 +106,7 @@ export function recordStart(args: {
   store.set(id, {
     id,
     startedAt,
+    updatedAt: startedAt,
     finishedAt: null,
     durationMs: null,
     trigger: args.trigger,
@@ -158,8 +161,10 @@ export function seedRecord(record: ExecutionRecord): void {
   notify()
 }
 
-export function getHistory(): ExecutionRecord[] {
-  return [...store.values()].sort((a, b) => b.startedAt - a.startedAt)
+export function getHistory(since?: number): ExecutionRecord[] {
+  return [...store.values()]
+    .filter((record) => since === undefined || record.updatedAt > since)
+    .sort((a, b) => b.startedAt - a.startedAt)
 }
 
 export function onChange(listener: ChangeListener): () => void {

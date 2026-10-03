@@ -22,6 +22,7 @@ describe("execution-history", () => {
     expect(entry.status).toBe("running")
     expect(entry.trigger).toBe("webhook")
     expect(entry.slug).toBe("some-recipe")
+    expect(entry.updatedAt).toBe(entry.startedAt)
     expect(entry.recipeName).toBeNull()
     expect(entry.finishedAt).toBeNull()
     expect(entry.durationMs).toBeNull()
@@ -54,6 +55,7 @@ describe("execution-history", () => {
     expect(entry.status).toBe("processed")
     expect(entry.changes).toEqual(["Set calories: 450 kcal/serving"])
     expect(entry.durationMs).toBe(2500)
+    expect(entry.updatedAt).toBe(Date.parse("2026-01-01T10:00:02.500Z"))
     expect(entry.finishedAt).toBe(Date.parse("2026-01-01T10:00:02.500Z"))
 
     vi.useRealTimers()

@@ -36,7 +36,8 @@ describe("history routes", () => {
     expect(html).toContain("mealie-calorie-estimator")
     expect(html).toContain('id="rows"')
     expect(html).toContain("/recipe/{slug}")
-    expect(html).toContain("/estimator/history/events")
+    expect(html).toContain("/estimator/history.json")
+    expect(html).not.toContain("EventSource")
     expect(html).toContain(`--primary: ${DEFAULT_THEME.light.primary}`)
     expect(html).toContain("prefers-color-scheme: dark")
   })
@@ -78,40 +79,25 @@ describe("history routes", () => {
     expect(body[0].estimate.nutrients.kcalPer100g).toBe(450)
   })
 
-  it("streams an initial snapshot over SSE", async () => {
-    const handle = recordStart({ trigger: "estimate", slug: "streamed-recipe" })
-    handle.complete("processed", [])
-
-    const controller = new AbortController()
-    const res = await fetch(`${baseUrl}/estimator/history/events`, {
-      signal: controller.signal,
-    })
-
-    expect(res.status).toBe(200)
-    expect(res.headers.get("content-type")).toContain("text/event-stream")
-
-    const chunk = await readUntil(res.body!, "data: ")
-    expect(chunk).toContain("streamed-recipe")
-
-    controller.abort()
-  })
-
-  it("pushes updates to connected SSE clients", async () => {
-    const controller = new AbortController()
-    const res = await fetch(`${baseUrl}/estimator/history/events`, {
-      signal: controller.signal,
-    })
-    const reader = res.body!.getReader()
-
-    await readFrom(reader, "data: ")
-
-    const handle = recordStart({ trigger: "backfill", slug: "live-recipe" })
+  it("returns records updated after since", async () => {
+    const handle = recordStart({ trigger: "estimate", slug: "updated-recipe" })
+    const since = getHistory()[0].updatedAt
+    await new Promise((resolve) => setTimeout(resolve, 2))
     handle.complete("processed", ["Set calories: 100 kcal/serving"])
 
-    const chunk = await readFrom(reader, "live-recipe")
-    expect(chunk).toContain("processed")
+    const res = await fetch(`${baseUrl}/estimator/history.json?since=${since}`)
 
-    controller.abort()
+    expect(res.status).toBe(200)
+    expect((await res.json()).map((record: { slug: string }) => record.slug)).toEqual([
+      "updated-recipe",
+    ])
+  })
+
+  it("rejects an invalid since timestamp", async () => {
+    const res = await fetch(`${baseUrl}/estimator/history.json?since=invalid`)
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: "since must be a timestamp in milliseconds" })
   })
 
   it("returns an empty array when nothing was recorded", async () => {
@@ -120,21 +106,3 @@ describe("history routes", () => {
     expect(getHistory()).toEqual([])
   })
 })
-
-async function readFrom(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  needle: string,
-): Promise<string> {
-  const decoder = new TextDecoder()
-  let buf = ""
-  while (!buf.includes(needle)) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buf += decoder.decode(value, { stream: true })
-  }
-  return buf
-}
-
-async function readUntil(body: ReadableStream<Uint8Array>, needle: string): Promise<string> {
-  return readFrom(body.getReader(), needle)
-}

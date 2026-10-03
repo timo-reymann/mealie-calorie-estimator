@@ -157,7 +157,6 @@ Per-serving nutrition is calculated by dividing total nutrients by the first ava
 | `POST` | `/backfill` | Estimate nutrition for all existing recipes |
 | `GET` | `/estimator/history` | HTML page listing recent executions |
 | `GET` | `/estimator/history.json` | Recent executions as JSON |
-| `GET` | `/estimator/history/events` | Server-Sent Events stream of history updates |
 
 ### Estimator History
 
@@ -173,7 +172,7 @@ Open `http://localhost:8000/estimator/history` to troubleshoot what the service 
 | `error` | Processing failed (error message shown in the Changes column) |
 | `running` | Currently queued or being processed, duration counts up live |
 
-The page streams updates over SSE, so in-flight jobs appear in real time. The history lives in memory only (last `HISTORY_MAX_ENTRIES` entries, default 200) and is lost on restart.
+The page polls `/estimator/history.json` every 2 seconds. The initial request returns all records; subsequent requests use a `since` timestamp and only return records created or updated after that point. This keeps in-flight jobs current without requiring a long-lived SSE connection through Keycloak or Traefik. The history lives in memory only (last `HISTORY_MAX_ENTRIES` entries, default 200) and is lost on restart.
 
 The page adopts the colors configured on your Mealie instance by loading them from `GET /api/app/about/theme` (the `THEME_*` environment variables), and follows your device's light/dark preference. If the endpoint is unreachable, it falls back to Mealie's default orange palette.
 

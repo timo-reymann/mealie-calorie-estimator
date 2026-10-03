@@ -115,6 +115,7 @@ export function seedDevHistory(): void {
     const record: ExecutionRecord = {
       id: crypto.randomUUID(),
       startedAt,
+      updatedAt: startedAt,
       finishedAt: null,
       durationMs: null,
       trigger,
@@ -166,6 +167,7 @@ export function seedDevHistory(): void {
 
     if (record.finishedAt !== null) {
       record.durationMs = record.finishedAt - record.startedAt
+      record.updatedAt = record.finishedAt
     }
 
     seedRecord(record)

@@ -1,27 +1,7 @@
 import type { FastifyInstance } from "fastify"
-import type { ServerResponse } from "node:http"
 import { config } from "../config.js"
-import { getHistory, onChange } from "../utils/execution-history.js"
+import { getHistory } from "../utils/execution-history.js"
 import { getMealieTheme, type MealieTheme, type MealieThemeColors } from "../services/mealie-theme.js"
-
-const clients = new Set<ServerResponse>()
-let unsubscribe: (() => void) | null = null
-
-function pushSnapshot(): void {
-  const payload = `data: ${JSON.stringify(getHistory())}\n\n`
-  for (const client of clients) {
-    try {
-      client.write(payload)
-    } catch {
-      clients.delete(client)
-    }
-  }
-}
-
-function ensureSubscription(): void {
-  if (unsubscribe) return
-  unsubscribe = onChange(pushSnapshot)
-}
 
 function colorVars(colors: MealieThemeColors): string {
   return [
@@ -185,7 +165,7 @@ const PAGE = String.raw`<!doctype html>
         <option value="filtered">filtered</option>
         <option value="error">error</option>
       </select>
-      <span class="pill" id="conn">connecting&hellip;</span>
+      <span class="pill" id="conn">polling</span>
     </div>
   </div>
 </header>
@@ -232,6 +212,8 @@ var NUTRIENTS = [
 ];
 var records = [];
 var expanded = {};
+var maxUpdatedAt = 0;
+var pollInFlight = false;
 var rowsEl = document.getElementById("rows");
 var emptyEl = document.getElementById("empty");
 var countEl = document.getElementById("count");
@@ -353,22 +335,47 @@ function render() {
 triggerEl.addEventListener("change", render);
 statusEl.addEventListener("change", render);
 
-var source = new EventSource("/estimator/history/events");
+function mergeSnapshot(snapshot) {
+  if (!Array.isArray(snapshot)) return;
 
-source.onopen = function () {
-  connEl.textContent = "live";
-  connEl.classList.add("live");
-};
+  var byId = new Map(records.map(function (record) { return [record.id, record]; }));
+  for (var i = 0; i < snapshot.length; i++) {
+    var record = snapshot[i];
+    byId.set(record.id, record);
+    if (record.updatedAt > maxUpdatedAt) maxUpdatedAt = record.updatedAt;
+  }
+  records = Array.from(byId.values()).sort(function (a, b) {
+    return b.startedAt - a.startedAt;
+  });
+}
 
-source.onerror = function () {
-  connEl.textContent = "reconnecting\u2026";
-  connEl.classList.remove("live");
-};
+function pollHistory() {
+  if (pollInFlight) return;
+  pollInFlight = true;
+  var since = maxUpdatedAt > 0 ? "?since=" + Math.max(0, maxUpdatedAt - 1) : "";
 
-source.onmessage = function (event) {
-  records = JSON.parse(event.data);
-  render();
-};
+  fetch("/estimator/history.json" + since, { cache: "no-store" })
+    .then(function (response) {
+      if (!response.ok) throw new Error("History request failed");
+      return response.json();
+    })
+    .then(function (snapshot) {
+      mergeSnapshot(snapshot);
+      render();
+      connEl.textContent = "live";
+      connEl.classList.add("live");
+    })
+    .catch(function () {
+      connEl.textContent = "reconnecting\u2026";
+      connEl.classList.remove("live");
+    })
+    .finally(function () {
+      pollInFlight = false;
+    });
+}
+
+pollHistory();
+setInterval(pollHistory, 2000);
 
 setInterval(function () {
   for (var i = 0; i < records.length; i++) {
@@ -398,39 +405,15 @@ export function historyRoutes(app: FastifyInstance): void {
     return renderPage(theme)
   })
 
-  app.get("/estimator/history.json", () => getHistory())
+  app.get<{ Querystring: { since?: string } }>("/estimator/history.json", (req, reply) => {
+    const rawSince = req.query.since
+    if (rawSince === undefined) return getHistory()
 
-  app.get("/estimator/history/events", (req, reply) => {
-    const res = reply.raw
-    reply.hijack()
-
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    })
-    res.flushHeaders()
-
-    clients.add(res)
-    ensureSubscription()
-    res.write(`data: ${JSON.stringify(getHistory())}\n\n`)
-
-    const cleanup = () => {
-      clearInterval(keepalive)
-      clients.delete(res)
+    const since = Number(rawSince)
+    if (!Number.isFinite(since)) {
+      return reply.status(400).send({ error: "since must be a timestamp in milliseconds" })
     }
-    const keepalive = setInterval(() => {
-      try {
-        res.write(`event: heartbeat\ndata: {"timestamp":${Date.now()}}\n\n`)
-      } catch {
-        cleanup()
-      }
-    }, 10000)
-    keepalive.unref()
 
-    req.raw.on("aborted", cleanup)
-    req.raw.on("close", cleanup)
-    res.on("error", cleanup)
+    return getHistory(since)
   })
 }
