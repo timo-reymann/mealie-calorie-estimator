@@ -33,14 +33,21 @@ export const DEFAULT_THEME: MealieTheme = {
 
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000
 const FALLBACK_TTL_MS = 30 * 1000
-const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
-
 let cached: { theme: MealieTheme; expiresAt: number } | null = null
 
 function asColor(value: unknown, fallback: string): string {
   if (typeof value !== "string") return fallback
   const trimmed = value.trim()
-  return HEX_COLOR.test(trimmed) ? trimmed : fallback
+  if (!trimmed.startsWith("#")) return fallback
+
+  const digits = trimmed.slice(1)
+  if (digits.length !== 3 && digits.length !== 6) return fallback
+
+  for (const digit of digits) {
+    if (!/[0-9a-f]/i.test(digit)) return fallback
+  }
+
+  return trimmed
 }
 
 function normalizeColors(
