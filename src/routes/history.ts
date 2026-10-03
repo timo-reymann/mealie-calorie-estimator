@@ -56,7 +56,7 @@ ${colorVars(theme.dark)}
   }`
 }
 
-const PAGE = `<!doctype html>
+const PAGE = String.raw`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -261,17 +261,17 @@ function durationText(rec) {
   var ms = rec.status === "running"
     ? Date.now() - rec.startedAt
     : rec.durationMs;
-  if (ms == null) return "\\u2014";
+  if (ms == null) return "\u2014";
   if (ms < 1000) return ms + "ms";
   if (ms < 60000) return (ms / 1000).toFixed(1) + "s";
   return Math.floor(ms / 60000) + "m " + Math.round((ms % 60000) / 1000) + "s";
 }
 
-function nv(v) { return v == null ? "\\u2014" : Math.round(v * 10) / 10; }
+function nv(v) { return v == null ? "\u2014" : Math.round(v * 10) / 10; }
 
 function macroText(n) {
-  return nv(n.kcalPer100g) + " kcal \\u00b7 P " + nv(n.proteinPer100g) + "g \\u00b7 C "
-    + nv(n.carbsPer100g) + "g \\u00b7 F " + nv(n.fatPer100g) + "g";
+  return nv(n.kcalPer100g) + " kcal \u00b7 P " + nv(n.proteinPer100g) + "g \u00b7 C "
+    + nv(n.carbsPer100g) + "g \u00b7 F " + nv(n.fatPer100g) + "g";
 }
 
 function nutrientDetails(est, recId) {
@@ -284,7 +284,7 @@ function nutrientDetails(est, recId) {
     var spec = NUTRIENTS[k];
     var value = est.nutrients[spec[0]];
     grid.appendChild(el("span", null, spec[1]));
-    grid.appendChild(el("b", null, value == null ? "\\u2014" : nv(value) + " " + spec[2]));
+    grid.appendChild(el("b", null, value == null ? "\u2014" : nv(value) + " " + spec[2]));
   }
   details.appendChild(grid);
   details.appendChild(el("div", "muted", est.matchedCount + " of "
@@ -307,7 +307,7 @@ function render() {
   if (visible.length === 0) {
     emptyEl.hidden = false;
     emptyEl.textContent = records.length === 0
-      ? "No executions yet \\u2014 trigger a recipe webhook or run POST /estimate. For sample data start the dev server with DEV_SEED_HISTORY=true."
+      ? "No executions yet \u2014 trigger a recipe webhook or run POST /estimate. For sample data start the dev server with DEV_SEED_HISTORY=true."
       : "No entries match the current filters.";
   } else {
     emptyEl.hidden = true;
@@ -361,7 +361,7 @@ source.onopen = function () {
 };
 
 source.onerror = function () {
-  connEl.textContent = "reconnecting\\u2026";
+  connEl.textContent = "reconnecting\u2026";
   connEl.classList.remove("live");
 };
 
