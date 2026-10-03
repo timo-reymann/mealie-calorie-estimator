@@ -1,11 +1,11 @@
-import { createRequire } from "module"
+import { createRequire } from "node:module"
 const { version } = createRequire(import.meta.url)("../package.json")
 
 export function getMealieToken(householdId?: string | null): string {
   if (householdId) {
     const key =
       "MEALIE_API_TOKEN_" +
-      householdId.replace(/[^A-Za-z0-9_]/g, "_")
+      householdId.replace(/\W/g, "_")
     const token = process.env[key]
     if (token) return token
   }
