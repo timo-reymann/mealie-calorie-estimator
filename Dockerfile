@@ -7,7 +7,7 @@ USER root
 RUN apk add --no-cache nodejs-22 npm
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci && npm install @rolldown/binding-linux-x64-gnu --no-save
+RUN npm ci --ignore-scripts && npm install --ignore-scripts --no-save @rolldown/binding-linux-x64-gnu@1.0.3
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
@@ -18,7 +18,7 @@ RUN apk add --no-cache nodejs-22 npm
 WORKDIR /app
 COPY --from=license / /
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm install @rolldown/binding-linux-x64-gnu --no-save
+RUN npm ci --ignore-scripts --omit=dev && npm install --ignore-scripts --no-save @rolldown/binding-linux-x64-gnu@1.0.3
 COPY --from=builder /app/dist ./dist
 RUN mkdir -p /app/data && \
     adduser -D -u 1000 appuser && \
