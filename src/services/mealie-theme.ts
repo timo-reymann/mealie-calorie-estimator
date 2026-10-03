@@ -44,7 +44,10 @@ function asColor(value: unknown, fallback: string): string {
   if (digits.length !== 3 && digits.length !== 6) return fallback
 
   for (const digit of digits) {
-    if (!/[0-9a-f]/i.test(digit)) return fallback
+    const code = digit.toLowerCase().charCodeAt(0)
+    const isDigit = code >= 48 && code <= 57
+    const isLowerHex = code >= 97 && code <= 102
+    if (!isDigit && !isLowerHex) return fallback
   }
 
   return trimmed
