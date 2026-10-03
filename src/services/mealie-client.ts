@@ -145,7 +145,7 @@ export async function getOrCreateTags(names: string[], householdId?: string | nu
     }),
   )
 
-  if (!created.some((tag) => tag === null)) {
+  if (!created.includes(null)) {
     return created.filter((tag): tag is MealieTag => tag !== null)
   }
 
