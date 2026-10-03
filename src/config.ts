@@ -63,6 +63,10 @@ export const config = {
     tag: process.env.ESTIMATE_TAG || "estimate",
   },
 
+  events: {
+    debounceMs: parseInt(process.env.EVENT_DEBOUNCE_MS || "2000", 10),
+  },
+
   cache: {
     dbPath: process.env.CACHE_DB_PATH || "data/cache.db",
   },

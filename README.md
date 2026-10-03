@@ -117,6 +117,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `LLM_MAX_TOKENS_NUTRIENTS` | `200` | Max tokens for nutrient estimation responses |
 | `ESTIMATE_STRATEGY` | `all` | Estimation strategy: `all` (estimate every recipe) or `tagged` (only estimate recipes with the `ESTIMATE_TAG` tag) |
 | `ESTIMATE_TAG` | `estimate` | Tag name to check when `ESTIMATE_STRATEGY=tagged` |
+| `EVENT_DEBOUNCE_MS` | `2000` | Quiet period before a recipe event is processed. Bursts of rapid saves for the same recipe are coalesced into one run and all writes for a recipe are serialized, so concurrent patches cannot duplicate ingredients |
 | `PORT` | `8000` | Server port |
 | `LOG_LEVEL` | `info` | Pino log level |
 

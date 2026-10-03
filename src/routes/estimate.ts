@@ -3,6 +3,7 @@ import { getRecipe, getRecipeHouseholdId } from "../services/mealie-client.js"
 import { computeIngredientHash, shouldEstimate } from "../services/estimator.js"
 import { estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
+import { slugQueue } from "../utils/slug-queue.js"
 
 async function processEstimate(slug: string): Promise<void> {
   try {
@@ -33,6 +34,8 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
 
     reply.status(202).send({ status: "accepted" })
 
-    setImmediate(() => processEstimate(slug))
+    void slugQueue
+      .run(slug, "estimate", () => processEstimate(slug))
+      .catch((err) => logger.error({ slug, err }, "Estimate task failed"))
   })
 }

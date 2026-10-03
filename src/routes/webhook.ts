@@ -9,6 +9,7 @@ import {
 } from "../services/estimator.js"
 import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
+import { slugQueue } from "../utils/slug-queue.js"
 
 function isEventRecipeData(v: unknown): v is EventRecipeData {
   if (typeof v !== "object" || v === null) return false
@@ -108,6 +109,8 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
 
     reply.status(202).send({ status: "accepted" })
 
-    setImmediate(() => processWebhook(slug))
+    void slugQueue
+      .run(slug, "webhook", () => processWebhook(slug))
+      .catch((err) => logger.error({ slug, err }, "Webhook task failed"))
   })
 }
