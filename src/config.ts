@@ -26,23 +26,23 @@ function hasAnyToken(): boolean {
 }
 
 export const config = {
-  port: parseInt(process.env.PORT || "8000", 10),
+  port: Number.parseInt(process.env.PORT || "8000", 10),
 
   mealie: {
     url: process.env.MEALIE_URL || "http://mealie:9000",
     apiToken: process.env.MEALIE_API_TOKEN || "",
-    timeoutMs: parseInt(process.env.MEALIE_TIMEOUT_MS || "30000", 10),
+    timeoutMs: Number.parseInt(process.env.MEALIE_TIMEOUT_MS || "30000", 10),
   },
 
   openFoodFacts: {
     baseUrl: process.env.OFF_BASE_URL || "https://world.openfoodfacts.org",
     searchBaseUrl: process.env.OFF_SEARCH_BASE_URL || "https://search.openfoodfacts.org",
     language: process.env.OFF_LANGUAGE || "de",
-    searchRateLimit: parseInt(process.env.OFF_SEARCH_RATE_LIMIT || "10", 10),
-    productRateLimit: parseInt(process.env.OFF_PRODUCT_RATE_LIMIT || "15", 10),
-    cacheTtlMs: parseInt(process.env.OFF_CACHE_TTL || "86400", 10) * 1000,
-    maxRetries: parseInt(process.env.OFF_MAX_RETRIES || "3", 10),
-    retryBackoffMs: parseInt(process.env.OFF_RETRY_BACKOFF_MS || "500", 10),
+    searchRateLimit: Number.parseInt(process.env.OFF_SEARCH_RATE_LIMIT || "10", 10),
+    productRateLimit: Number.parseInt(process.env.OFF_PRODUCT_RATE_LIMIT || "15", 10),
+    cacheTtlMs: Number.parseInt(process.env.OFF_CACHE_TTL || "86400", 10) * 1000,
+    maxRetries: Number.parseInt(process.env.OFF_MAX_RETRIES || "3", 10),
+    retryBackoffMs: Number.parseInt(process.env.OFF_RETRY_BACKOFF_MS || "500", 10),
     userAgent: process.env.OFF_USER_AGENT || `mealie-calorie-estimator/${version} (mail@timo-reymann.de)`,
   },
 
@@ -52,10 +52,10 @@ export const config = {
     endpointUrl: process.env.LLM_ENDPOINT_URL || "/chat/completions",
     apiKey: process.env.LLM_API_KEY || "",
     model: process.env.LLM_MODEL || "mistral-small-latest",
-    rateLimit: parseInt(process.env.LLM_RATE_LIMIT || "30", 10),
-    temperature: parseFloat(process.env.LLM_TEMPERATURE || "0.1"),
-    maxTokensGrams: parseInt(process.env.LLM_MAX_TOKENS_GRAMS || "10", 10),
-    maxTokensNutrients: parseInt(process.env.LLM_MAX_TOKENS_NUTRIENTS || "200", 10),
+    rateLimit: Number.parseInt(process.env.LLM_RATE_LIMIT || "30", 10),
+    temperature: Number.parseFloat(process.env.LLM_TEMPERATURE || "0.1"),
+    maxTokensGrams: Number.parseInt(process.env.LLM_MAX_TOKENS_GRAMS || "10", 10),
+    maxTokensNutrients: Number.parseInt(process.env.LLM_MAX_TOKENS_NUTRIENTS || "200", 10),
   },
 
   estimate: {
@@ -64,7 +64,7 @@ export const config = {
   },
 
   events: {
-    debounceMs: parseInt(process.env.EVENT_DEBOUNCE_MS || "2000", 10),
+    debounceMs: Number.parseInt(process.env.EVENT_DEBOUNCE_MS || "2000", 10),
   },
 
   cache: {
