@@ -1,7 +1,24 @@
-const fs = require('fs');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
-const inputFile = process.argv[2];
-const outputFile = process.argv[3];
+function resolveInside(p, roots) {
+  if (typeof p !== 'string' || p.includes('\0')) {
+    throw new Error('Invalid path: expected a string without null bytes');
+  }
+  const resolved = path.resolve(p);
+  const inside = roots.some(
+    (root) => resolved === root || resolved.startsWith(root + path.sep),
+  );
+  if (!inside) {
+    throw new Error(`Path outside allowed directories: ${p}`);
+  }
+  return resolved;
+}
+
+const allowedRoots = [process.cwd(), os.tmpdir(), '/tmp'].map((root) => path.resolve(root));
+const inputFile = resolveInside(process.argv[2], allowedRoots);
+const outputFile = resolveInside(process.argv[3], allowedRoots);
 
 const licenses = JSON.parse(fs.readFileSync(inputFile, 'utf8'));
 const entries = Object.entries(licenses).sort(([a], [b]) => a.localeCompare(b));
@@ -20,16 +37,20 @@ for (const [key, info] of entries) {
     ? info.licenses.join(', ')
     : (info.licenses || 'unknown');
 
-  lines.push('=============================================');
-  lines.push('');
-  lines.push(`Module:  ${pkgName}`);
-  lines.push(`Version: ${version}`);
-  lines.push(`License: ${licenseType}`);
-  lines.push('');
+  lines.push(
+    '=============================================',
+    '',
+    `Module:  ${pkgName}`,
+    `Version: ${version}`,
+    `License: ${licenseType}`,
+    ''
+  );
 
-  if (info.licenseFile && fs.existsSync(info.licenseFile)) {
-    lines.push(fs.readFileSync(info.licenseFile, 'utf8').trim());
-    lines.push('');
+  if (info.licenseFile) {
+    const licensePath = resolveInside(info.licenseFile, allowedRoots);
+    if (fs.existsSync(licensePath)) {
+      lines.push(fs.readFileSync(licensePath, 'utf8').trim(), '');
+    }
   }
 }
 
