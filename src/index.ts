@@ -32,7 +32,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+try {
+  await main()
+} catch (err) {
   logger.error({ err }, "Server startup failed")
   process.exit(1)
-})
+}
