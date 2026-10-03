@@ -31,7 +31,7 @@ const allowedRoots = [process.cwd(), os.tmpdir(), '/tmp'].map((root) => {
 });
 
 if (typeof process.argv[2] !== 'string' || typeof process.argv[3] !== 'string') {
-  throw new Error('Usage: node generate-notice.cjs <licenses.json> <output-file>');
+  throw new TypeError('Usage: node generate-notice.cjs <licenses.json> <output-file>');
 }
 
 const inputFile = fs.realpathSync(path.resolve(process.argv[2]));
