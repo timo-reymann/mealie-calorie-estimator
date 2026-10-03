@@ -20,8 +20,8 @@ export function computeIngredientHash(recipe: MealieRecipe): string {
   }
 
   parts.sort()
-  parts.push(`yield:${recipe.recipeYield ?? ""}`)
   parts.push(`servings:${recipe.recipeServings ?? ""}`)
+  parts.push(`yieldQuantity:${recipe.recipeYieldQuantity ?? ""}`)
   const hash = crypto.createHash("sha256").update(parts.join(",")).digest("hex")
   return hash
 }
@@ -32,21 +32,6 @@ export function shouldEstimate(recipe: MealieRecipe): boolean {
   return (recipe.tags || []).some(t => t.slug === tagName || t.name.toLowerCase() === tagName)
 }
 
-export function parseYield(recipeYield: string | null): number | null {
-  if (!recipeYield) return null
-
-  const rangeMatch = recipeYield.match(/(\d+)\s*[-–]\s*(\d+)/)
-  if (rangeMatch) {
-    return Math.round((parseInt(rangeMatch[1], 10) + parseInt(rangeMatch[2], 10)) / 2)
-  }
-
-  const numMatch = recipeYield.match(/(\d+(?:[.,]\d+)?)/)
-  if (numMatch) {
-    return parseFloat(numMatch[1].replace(",", "."))
-  }
-
-  return null
-}
 
 function emptyNutrients(): NutrientSet {
   return {
@@ -154,7 +139,7 @@ export async function estimateRecipe(recipe: MealieRecipe): Promise<EstimateResu
     matchedIngredients.push({ name: foodName, grams, matched: true, nutrients: result.nutrients, llmEstimated })
   }
 
-  const servings = parseYield(recipe.recipeYield) ?? recipe.recipeServings
+  const servings = recipe.recipeServings ?? recipe.recipeYieldQuantity ?? 1
   const perServingNutrients = servings && servings > 0 ? divideByServings(totalNutrients, servings) : emptyNutrients()
 
   const result: EstimateResult = {
@@ -209,7 +194,6 @@ function n(v: number | null): string {
 export function buildNutritionPatch(
   result: EstimateResult,
   hash: string,
-  recipeYield: string | null,
 ): NutritionPatch {
   const llmIngredients = result.matchedIngredients
     .filter((i) => i.llmEstimated)
@@ -230,9 +214,8 @@ export function buildNutritionPatch(
     extras.calorie_estimator_total_kcal = totalKcal.toString()
   }
 
-  const servings = parseYield(recipeYield)
-  if (servings !== null) {
-    extras.calorie_estimator_yield = servings.toString()
+  if (result.servings !== null) {
+    extras.calorie_estimator_yield = result.servings.toString()
   }
 
   const nutrition: Partial<MealieNutrition> = {}

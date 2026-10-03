@@ -7,6 +7,7 @@ function makeRecipe(overrides: Partial<MealieRecipe> = {}): MealieRecipe {
     slug: "test",
     name: "Test",
     recipeYield: "4 servings",
+    recipeYieldQuantity: null,
     recipeServings: 4,
     recipeIngredient: [
       {

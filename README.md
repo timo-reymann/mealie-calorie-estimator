@@ -124,6 +124,14 @@ See [`.env.example`](./.env.example) for the full list, including rate-limit and
 
 > **Note for GPT-5 models:** GPT-5 requires a minimum temperature of `1.0` and uses larger default token limits. When using a GPT-5 model, set `LLM_TEMPERATURE=1.0` and increase `LLM_MAX_TOKENS_GRAMS` and `LLM_MAX_TOKENS_NUTRIENTS` as needed (e.g. `LLM_MAX_TOKENS_NUTRIENTS=400`).
 
+### Servings Resolution
+
+Per-serving nutrition is calculated by dividing total nutrients by the first available value in this order:
+
+1. `recipeServings` — the numeric servings field from Mealie
+2. `recipeYieldQuantity` — the yield quantity field from Mealie
+3. Defaults to `1` if neither is set
+
 ## Usage
 
 1. Navigate to your Mealie instance

@@ -105,7 +105,7 @@ export async function estimateAndTag(
   householdId?: string | null,
 ): Promise<{ calories: number | null; tagSlugs: string[] }> {
   const result = await estimateRecipe(recipe)
-  const nutritionPatch = buildNutritionPatch(result, hash, recipe.recipeYield)
+  const nutritionPatch = buildNutritionPatch(result, hash)
   const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients, householdId)
   await patchRecipe(recipe.slug, {
     ...nutritionPatch,

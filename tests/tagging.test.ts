@@ -27,6 +27,7 @@ function makeRecipe(tags: MealieTag[], extrasSlugs?: string[]): MealieRecipe {
     slug: "test",
     name: "Test",
     recipeYield: null,
+    recipeYieldQuantity: null,
     recipeServings: null,
     recipeIngredient: [],
     nutrition: null,

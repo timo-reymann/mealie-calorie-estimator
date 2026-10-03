@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { computeIngredientHash, parseYield, buildNutritionPatch, hasManualCalories, buildManualAckPatch } from "../src/services/estimator.js"
+import { computeIngredientHash, buildNutritionPatch, hasManualCalories, buildManualAckPatch } from "../src/services/estimator.js"
 import type { MealieRecipe, EstimateResult, NutrientSet } from "../src/types.js"
 
 function makeRecipe(overrides: Partial<MealieRecipe> = {}): MealieRecipe {
@@ -7,6 +7,7 @@ function makeRecipe(overrides: Partial<MealieRecipe> = {}): MealieRecipe {
     slug: "test-recipe",
     name: "Test Recipe",
     recipeYield: "4 servings",
+    recipeYieldQuantity: null,
     recipeServings: 4,
     recipeIngredient: [],
     nutrition: null,
@@ -97,9 +98,9 @@ describe("computeIngredientHash", () => {
     expect(computeIngredientHash(a)).not.toBe(computeIngredientHash(b))
   })
 
-  it("produces same hash when yield string differs but parsed servings are same", () => {
-    const a = makeRecipe({ recipeYield: "4 servings", recipeServings: 4 })
-    const b = makeRecipe({ recipeYield: "4 Portionen", recipeServings: 4 })
+  it("produces different hash when recipeYieldQuantity changes", () => {
+    const a = makeRecipe({ recipeYieldQuantity: 4 })
+    const b = makeRecipe({ recipeYieldQuantity: 6 })
 
     expect(computeIngredientHash(a)).not.toBe(computeIngredientHash(b))
   })
@@ -117,27 +118,6 @@ describe("computeIngredientHash", () => {
   })
 })
 
-describe("parseYield", () => {
-  it.each([
-    ["4 servings", 4],
-    ["6 Portionen", 6],
-    ["1 loaf", 1],
-    ["6-8 portions", 7],
-    ["4-6", 5],
-    ["12", 12],
-    ["2.5 cups", 2.5],
-  ])("parses '%s' to %d", (input, expected) => {
-    expect(parseYield(input)).toBe(expected)
-  })
-
-  it.each([
-    [null, null],
-    ["", null],
-    ["as needed", null],
-  ])("returns null for '%s'", (input, expected) => {
-    expect(parseYield(input)).toBe(expected)
-  })
-})
 
 describe("buildNutritionPatch", () => {
   it("builds patch with all nutrients per serving", () => {
@@ -152,7 +132,7 @@ describe("buildNutritionPatch", () => {
       matchedIngredients: [],
     }
 
-    const patch = buildNutritionPatch(result, "abc123", "4 servings")
+    const patch = buildNutritionPatch(result, "abc123")
 
     expect(patch.nutrition.calories).toBe("350")
     expect(patch.nutrition.proteinContent).toBe("10")
@@ -175,7 +155,7 @@ describe("buildNutritionPatch", () => {
       matchedIngredients: [],
     }
 
-    const patch = buildNutritionPatch(result, "def456", null)
+    const patch = buildNutritionPatch(result, "def456")
 
     expect(patch.nutrition.calories).toBeUndefined()
     expect(patch.extras.calorie_estimator_yield).toBeUndefined()
@@ -194,7 +174,7 @@ describe("buildNutritionPatch", () => {
       matchedIngredients: [],
     }
 
-    const patch = buildNutritionPatch(result, "ghi789", "4 servings")
+    const patch = buildNutritionPatch(result, "ghi789")
 
     expect(patch.nutrition.calories).toBe("0")
     expect(patch.extras.calorie_estimator_total_kcal).toBeUndefined()

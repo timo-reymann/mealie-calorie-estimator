@@ -6,6 +6,7 @@ function makeRecipe(tags: { slug: string; name: string }[] = []): MealieRecipe {
     slug: "test",
     name: "Test",
     recipeYield: null,
+    recipeYieldQuantity: null,
     recipeServings: null,
     recipeIngredient: [],
     nutrition: null,

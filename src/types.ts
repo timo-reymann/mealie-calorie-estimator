@@ -50,6 +50,7 @@ export interface MealieRecipe {
   slug: string
   name: string
   recipeYield: string | null
+  recipeYieldQuantity: number | null
   recipeServings: number | null
   recipeIngredient: MealieIngredient[]
   nutrition: MealieNutrition | null
