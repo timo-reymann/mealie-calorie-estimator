@@ -112,12 +112,17 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `LLM_BASE_URL` | `https://api.mistral.ai/v1` | LLM API base URL |
 | `LLM_ENDPOINT_URL` | `/chat/completions` | LLM API endpoint path (supports OpenAI-compatible providers) |
 | `LLM_MODEL` | `mistral-small-latest` | Model name |
+| `LLM_TEMPERATURE` | `0.1` | LLM sampling temperature |
+| `LLM_MAX_TOKENS_GRAMS` | `10` | Max tokens for gram estimation responses |
+| `LLM_MAX_TOKENS_NUTRIENTS` | `200` | Max tokens for nutrient estimation responses |
 | `ESTIMATE_STRATEGY` | `all` | Estimation strategy: `all` (estimate every recipe) or `tagged` (only estimate recipes with the `ESTIMATE_TAG` tag) |
 | `ESTIMATE_TAG` | `estimate` | Tag name to check when `ESTIMATE_STRATEGY=tagged` |
 | `PORT` | `8000` | Server port |
 | `LOG_LEVEL` | `info` | Pino log level |
 
 See [`.env.example`](./.env.example) for the full list, including rate-limit and cache tuning.
+
+> **Note for GPT-5 models:** GPT-5 requires a minimum temperature of `1.0` and uses larger default token limits. When using a GPT-5 model, set `LLM_TEMPERATURE=1.0` and increase `LLM_MAX_TOKENS_GRAMS` and `LLM_MAX_TOKENS_NUTRIENTS` as needed (e.g. `LLM_MAX_TOKENS_NUTRIENTS=400`).
 
 ## Usage
 

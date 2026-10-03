@@ -53,6 +53,9 @@ export const config = {
     apiKey: process.env.LLM_API_KEY || "",
     model: process.env.LLM_MODEL || "mistral-small-latest",
     rateLimit: parseInt(process.env.LLM_RATE_LIMIT || "30", 10),
+    temperature: parseFloat(process.env.LLM_TEMPERATURE || "0.1"),
+    maxTokensGrams: parseInt(process.env.LLM_MAX_TOKENS_GRAMS || "10", 10),
+    maxTokensNutrients: parseInt(process.env.LLM_MAX_TOKENS_NUTRIENTS || "200", 10),
   },
 
   estimate: {

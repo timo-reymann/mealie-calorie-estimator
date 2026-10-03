@@ -32,8 +32,8 @@ export async function estimateGrams(quantity: number, unitName: string, foodName
       body: JSON.stringify({
         model: config.llm.model,
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.1,
-        max_tokens: 10,
+        temperature: config.llm.temperature,
+        max_tokens: config.llm.maxTokensGrams,
       }),
     })
 
@@ -94,8 +94,8 @@ export async function estimateNutrients(foodName: string): Promise<NutrientSet |
       body: JSON.stringify({
         model: config.llm.model,
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.1,
-        max_tokens: 200,
+        temperature: config.llm.temperature,
+        max_tokens: config.llm.maxTokensNutrients,
       }),
     })
 
