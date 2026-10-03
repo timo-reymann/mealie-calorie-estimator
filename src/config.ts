@@ -71,7 +71,18 @@ export const config = {
     dbPath: process.env.CACHE_DB_PATH || "data/cache.db",
   },
 
+  history: {
+    recipeUrlTemplate: process.env.MEALIE_RECIPE_URL_TEMPLATE || "",
+    seedDevData:
+      (process.env.DEV_SEED_HISTORY || "false").toLowerCase() === "true",
+    maxEntries: Number.parseInt(process.env.HISTORY_MAX_ENTRIES || "200", 10),
+  },
+
   logLevel: process.env.LOG_LEVEL || "info",
+}
+
+if (config.history.recipeUrlTemplate === "") {
+  config.history.recipeUrlTemplate = `${config.mealie.url}/recipe/{slug}`
 }
 
 if (!hasAnyToken()) {

@@ -103,7 +103,13 @@ export async function estimateAndTag(
   recipe: MealieRecipe,
   hash: string,
   householdId?: string | null,
-): Promise<{ calories: number | null; tagSlugs: string[] }> {
+): Promise<{
+  calories: number | null
+  tagSlugs: string[]
+  perServingNutrients: NutrientSet
+  matchedCount: number
+  unmatchedCount: number
+}> {
   const result = await estimateRecipe(recipe)
   const nutritionPatch = buildNutritionPatch(result, hash)
   const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients, householdId)
@@ -112,5 +118,11 @@ export async function estimateAndTag(
     tags,
     extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
   }, householdId)
-  return { calories: result.perServingNutrients.kcalPer100g, tagSlugs }
+  return {
+    calories: result.perServingNutrients.kcalPer100g,
+    tagSlugs,
+    perServingNutrients: result.perServingNutrients,
+    matchedCount: result.matchedCount,
+    unmatchedCount: result.unmatchedCount,
+  }
 }

@@ -9,6 +9,7 @@ import {
 import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 import { slugQueue } from "../utils/slug-queue.js"
+import { recordStart } from "../utils/execution-history.js"
 
 async function processBackfill(): Promise<void> {
   try {
@@ -23,13 +24,16 @@ async function processBackfill(): Promise<void> {
 
     const processSlug = async (slug: string): Promise<void> => {
       processed++
+      const handle = recordStart({ trigger: "backfill", slug })
 
       try {
         await slugQueue.runNow(slug, async () => {
           const recipe = await getRecipe(slug)
+          handle.setRecipe(recipe.name, getRecipeHouseholdId(recipe))
 
           if (!shouldEstimate(recipe)) {
             filtered++
+            handle.complete("filtered", ["Recipe not tagged for estimation"])
             return
           }
 
@@ -40,6 +44,7 @@ async function processBackfill(): Promise<void> {
           if (existingHash === hash) {
             if (tagsAreComplete(recipe)) {
               skipped++
+              handle.complete("skipped", ["Ingredients unchanged, tags already applied"])
               return
             }
 
@@ -50,6 +55,7 @@ async function processBackfill(): Promise<void> {
               extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
             }, householdId)
             tagOnly++
+            handle.complete("tags-added", [`Added auto-tags: ${tagSlugs.join(", ")}`])
             return
           }
 
@@ -57,14 +63,23 @@ async function processBackfill(): Promise<void> {
             const patch = buildManualAckPatch(recipe, hash)
             await patchRecipe(slug, patch, householdId)
             manual++
+            handle.complete("manual", [
+              `Preserved manual calories: ${recipe.nutrition?.calories ?? "?"} kcal`,
+            ])
             return
           }
 
-          await estimateAndTag(recipe, hash, householdId)
+          const { calories, tagSlugs, perServingNutrients, matchedCount, unmatchedCount } =
+            await estimateAndTag(recipe, hash, householdId)
           updated++
+          handle.complete("processed", [
+            `Set calories: ${calories ?? "?"} kcal/serving`,
+            `Auto-tags: ${tagSlugs.join(", ")}`,
+          ], { nutrients: perServingNutrients, matchedCount, unmatchedCount })
         })
       } catch (err) {
         errors++
+        handle.fail(err)
         logger.error({ slug, err }, "Backfill error for recipe")
       }
 

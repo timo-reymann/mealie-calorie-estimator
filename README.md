@@ -27,6 +27,7 @@ mealie-calorie-estimator
 - Skips re-estimation via a SHA256 ingredient hash and preserves manually entered calories
 - Webhook, on-demand, and bulk backfill entry points
 - **Auto-tags** recipes with calorie range and digestibility tags
+- **Execution history** at `/estimator/history` — live view of what was processed, skipped or failed
 
 ## Purpose
 
@@ -118,6 +119,9 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `ESTIMATE_STRATEGY` | `all` | Estimation strategy: `all` (estimate every recipe) or `tagged` (only estimate recipes with the `ESTIMATE_TAG` tag) |
 | `ESTIMATE_TAG` | `estimate` | Tag name to check when `ESTIMATE_STRATEGY=tagged` |
 | `EVENT_DEBOUNCE_MS` | `2000` | Quiet period before a recipe event is processed. Bursts of rapid saves for the same recipe are coalesced into one run and all writes for a recipe are serialized, so concurrent patches cannot duplicate ingredients |
+| `MEALIE_RECIPE_URL_TEMPLATE` | `${MEALIE_URL}/recipe/{slug}` | URL template for recipe links on the history page, `{slug}` is replaced with the recipe slug |
+| `HISTORY_MAX_ENTRIES` | `200` | Maximum number of in-memory execution records kept for `/estimator/history` |
+| `DEV_SEED_HISTORY` | `false` | Seed the history with synthetic sample data on startup (for local development only) |
 | `PORT` | `8000` | Server port |
 | `LOG_LEVEL` | `info` | Pino log level |
 
@@ -151,6 +155,33 @@ Per-serving nutrition is calculated by dividing total nutrients by the first ava
 | `POST` | `/webhook` | Apprise webhook for recipe created/updated events |
 | `POST` | `/estimate` | On-demand estimation for a single recipe |
 | `POST` | `/backfill` | Estimate nutrition for all existing recipes |
+| `GET` | `/estimator/history` | HTML page listing recent executions |
+| `GET` | `/estimator/history.json` | Recent executions as JSON |
+| `GET` | `/estimator/history/events` | Server-Sent Events stream of history updates |
+
+### Estimator History
+
+Open `http://localhost:8000/estimator/history` to troubleshoot what the service did to each recipe. The table shows the recipe (linked to your Mealie instance), the trigger (`webhook`, `estimate`, `backfill`), a status badge and what changed:
+
+| Badge | Meaning |
+|---|---|
+| `processed` | Nutrition and auto-tags were estimated and patched into Mealie |
+| `tags added` | Ingredients unchanged, only missing auto-tags were applied |
+| `manual` | Manually entered calories were preserved (hash acknowledged) |
+| `skipped` | Already up to date — nothing to do |
+| `filtered` | Recipe does not match `ESTIMATE_STRATEGY` / `ESTIMATE_TAG` |
+| `error` | Processing failed (error message shown in the Changes column) |
+| `running` | Currently queued or being processed, duration counts up live |
+
+The page streams updates over SSE, so in-flight jobs appear in real time. The history lives in memory only (last `HISTORY_MAX_ENTRIES` entries, default 200) and is lost on restart.
+
+The page adopts the colors configured on your Mealie instance by loading them from `GET /api/app/about/theme` (the `THEME_*` environment variables), and follows your device's light/dark preference. If the endpoint is unreachable, it falls back to Mealie's default orange palette.
+
+To preview the page with sample data:
+
+```sh
+DEV_SEED_HISTORY=true MEALIE_API_TOKEN=dev-token npm run dev
+```
 
 ## Motivation
 

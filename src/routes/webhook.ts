@@ -10,6 +10,7 @@ import {
 import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 import { slugQueue } from "../utils/slug-queue.js"
+import { recordStart } from "../utils/execution-history.js"
 
 function isEventRecipeData(v: unknown): v is EventRecipeData {
   if (typeof v !== "object" || v === null) return false
@@ -27,11 +28,15 @@ function normalizeEventData(raw: Record<string, unknown>): EventRecipeData {
 }
 
 async function processWebhook(slug: string): Promise<void> {
+  const handle = recordStart({ trigger: "webhook", slug })
+
   try {
     const recipe = await getRecipe(slug)
+    handle.setRecipe(recipe.name, getRecipeHouseholdId(recipe))
 
     if (!shouldEstimate(recipe)) {
       logger.info({ slug }, "Recipe skipped (not tagged for estimation)")
+      handle.complete("filtered", ["Recipe not tagged for estimation"])
       return
     }
 
@@ -43,6 +48,7 @@ async function processWebhook(slug: string): Promise<void> {
     if (existingHash === hash) {
       if (tagsAreComplete(recipe)) {
         logger.info({ slug }, "Tags up to date, skipping")
+        handle.complete("skipped", ["Ingredients unchanged, tags already applied"])
         return
       }
 
@@ -53,6 +59,7 @@ async function processWebhook(slug: string): Promise<void> {
         extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
       }, householdId)
       logger.info({ slug, tags: tagSlugs }, "Added missing auto-tags")
+      handle.complete("tags-added", [`Added auto-tags: ${tagSlugs.join(", ")}`])
       return
     }
 
@@ -60,13 +67,22 @@ async function processWebhook(slug: string): Promise<void> {
       logger.info({ slug, calories: recipe.nutrition?.calories }, "Manual calories detected, acknowledging without overwriting")
       const patch = buildManualAckPatch(recipe, hash)
       await patchRecipe(slug, patch, householdId)
+      handle.complete("manual", [
+        `Preserved manual calories: ${recipe.nutrition?.calories ?? "?"} kcal`,
+      ])
       return
     }
 
-    const { calories, tagSlugs } = await estimateAndTag(recipe, hash, householdId)
+    const { calories, tagSlugs, perServingNutrients, matchedCount, unmatchedCount } =
+      await estimateAndTag(recipe, hash, householdId)
     logger.info({ slug, calories, tags: tagSlugs }, "Updated recipe nutrition and tags")
+    handle.complete("processed", [
+      `Set calories: ${calories ?? "?"} kcal/serving`,
+      `Auto-tags: ${tagSlugs.join(", ")}`,
+    ], { nutrients: perServingNutrients, matchedCount, unmatchedCount })
   } catch (err) {
     logger.error({ slug, err }, "Webhook background processing failed")
+    handle.fail(err)
   }
 }
 

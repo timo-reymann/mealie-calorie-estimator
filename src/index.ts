@@ -6,6 +6,8 @@ import { initCache } from "./utils/cache.js"
 import { webhookRoutes } from "./routes/webhook.js"
 import { estimateRoutes } from "./routes/estimate.js"
 import { backfillRoutes } from "./routes/backfill.js"
+import { historyRoutes } from "./routes/history.js"
+import { seedDevHistory } from "./utils/dev-seed.js"
 
 async function main() {
   await initCache()
@@ -18,6 +20,9 @@ async function main() {
   await app.register(webhookRoutes)
   await app.register(estimateRoutes)
   await app.register(backfillRoutes)
+  await app.register(historyRoutes)
+
+  seedDevHistory()
 
   app.get("/health", () => {
     return { status: "ok", timestamp: new Date().toISOString() }
