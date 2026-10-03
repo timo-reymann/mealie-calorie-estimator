@@ -85,8 +85,8 @@ async function processBackfill(): Promise<void> {
   }
 }
 
-export async function backfillRoutes(app: FastifyInstance): Promise<void> {
-  app.post("/backfill", async (req, reply) => {
+export function backfillRoutes(app: FastifyInstance): void {
+  app.post("/backfill", (req, reply) => {
     logger.info("Backfill requested")
 
     reply.status(202).send({ status: "accepted" })

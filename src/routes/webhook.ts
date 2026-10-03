@@ -70,8 +70,8 @@ async function processWebhook(slug: string): Promise<void> {
   }
 }
 
-export async function webhookRoutes(app: FastifyInstance): Promise<void> {
-  app.post<{ Body: AppriseWebhookPayload }>("/webhook", async (req, reply) => {
+export function webhookRoutes(app: FastifyInstance): void {
+  app.post<{ Body: AppriseWebhookPayload }>("/webhook", (req, reply) => {
     const { document_data, event_type } = req.body
 
     logger.info({ event_type, document_data }, "Received webhook event")

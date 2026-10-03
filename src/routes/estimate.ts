@@ -26,8 +26,8 @@ async function processEstimate(slug: string): Promise<void> {
   }
 }
 
-export async function estimateRoutes(app: FastifyInstance): Promise<void> {
-  app.post<{ Params: { slug: string } }>("/estimate", async (req, reply) => {
+export function estimateRoutes(app: FastifyInstance): void {
+  app.post<{ Params: { slug: string } }>("/estimate", (req, reply) => {
     const { slug } = (req as any).body.content as any
 
     logger.info({ slug }, "On-demand estimation requested")

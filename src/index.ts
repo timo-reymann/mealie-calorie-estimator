@@ -19,7 +19,7 @@ async function main() {
   await app.register(estimateRoutes)
   await app.register(backfillRoutes)
 
-  app.get("/health", async () => {
+  app.get("/health", () => {
     return { status: "ok", timestamp: new Date().toISOString() }
   })
 
@@ -32,4 +32,7 @@ async function main() {
   }
 }
 
-main()
+main().catch((err) => {
+  logger.error({ err }, "Server startup failed")
+  process.exit(1)
+})
