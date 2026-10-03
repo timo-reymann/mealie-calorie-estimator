@@ -77,7 +77,11 @@ It's recommended to install it next to your Mealie instance using docker-compose
    ```yaml
    services:
      mealie:
-       # mealie configuration
+       image: ghcr.io/mealie-recipes/mealie:latest
+       environment:
+         # Required by Mealie 3.26.0+ for Recipe Actions targeting this
+         # Docker-internal hostname.
+         HTTP_ALLOW_LIST: calorie-estimator
      calorie-estimator:
        image: timoreymann/mealie-calorie-estimator:latest
        container_name: mealie-calorie-estimator
@@ -181,6 +185,58 @@ To preview the page with sample data:
 ```sh
 DEV_SEED_HISTORY=true MEALIE_API_TOKEN=dev-token npm run dev
 ```
+
+### Publishing the History UI
+
+The history page is served at `/estimator/history`. The service does not
+provide authentication for this UI. Keep it on a trusted internal network or
+protect `/estimator/` with the same authentication proxy used for your Mealie
+instance before exposing it publicly.
+
+The `/estimator` prefix is part of the application routes. Reverse proxies
+must preserve that prefix and must not strip it. Configure
+`MEALIE_RECIPE_URL_TEMPLATE` separately when the browser needs public recipe
+links, for example:
+
+```dotenv
+MEALIE_RECIPE_URL_TEMPLATE=https://recipes.example.com/g/default/r/{slug}
+```
+
+#### Nginx
+
+```nginx
+location /estimator/ {
+    proxy_pass http://calorie-estimator:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    # Add auth_request, auth_basic, or your trusted auth proxy here.
+}
+```
+
+The `proxy_pass` URL intentionally has no trailing slash, preserving
+`/estimator/...` when forwarding to the service.
+
+#### Traefik
+
+```yaml
+services:
+  calorie-estimator:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.calorie-estimator.rule=Host(`recipes.example.com`) && PathPrefix(`/estimator`)
+      - traefik.http.routers.calorie-estimator.entrypoints=websecure
+      - traefik.http.routers.calorie-estimator.tls=true
+      - traefik.http.services.calorie-estimator.loadbalancer.server.port=8000
+      # Attach your forward-auth/basic-auth middleware here when required.
+```
+
+Do not attach a `StripPrefix` middleware to this router. For Mealie 3.26.0+
+installations, the Mealie service must allow the Docker-internal hostname used
+by the Recipe Action URL via `HTTP_ALLOW_LIST`; use the exact service name if
+it differs from `calorie-estimator`. See Mealie's [HTTP allow-list security
+configuration](https://mealie.io/documentation/getting-started/installation/backend-config/#security).
 
 ## Motivation
 
