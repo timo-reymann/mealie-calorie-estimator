@@ -1,6 +1,6 @@
 import crypto from "node:crypto"
 import type {
-  MealieRecipe, IngredientMatch, EstimateResult, NutritionPatch,
+  MealieRecipe, MealieIngredient, IngredientMatch, EstimateResult, NutritionPatch,
   NutrientSet, MealieNutrition,
 } from "../types.js"
 import { config } from "../config.js"
@@ -88,55 +88,76 @@ function divideByServings(total: NutrientSet, servings: number): NutrientSet {
   }
 }
 
+interface IngredientOutcome {
+  foodName: string
+  grams: number | null
+  nutrients: NutrientSet | null
+  llmEstimated: boolean
+}
+
+async function evaluateIngredient(ing: MealieIngredient): Promise<IngredientOutcome | null> {
+  const foodName = ing.food?.name
+  const quantity = ing.quantity
+
+  if (!foodName || quantity == null || quantity <= 0) {
+    return null
+  }
+
+  let grams = convertToGrams(quantity, ing.unit)
+  let llmEstimated = false
+
+  if (grams === null) {
+    const unitName = ing.unit?.name
+    if (unitName) {
+      const llmGrams = await estimateGrams(quantity, unitName, foodName)
+      if (llmGrams !== null) {
+        grams = llmGrams
+        llmEstimated = true
+      }
+    }
+  }
+
+  if (grams === null) {
+    return { foodName, grams: null, nutrients: null, llmEstimated: false }
+  }
+
+  const result = await lookupNutrients(foodName, ing.unit?.name)
+
+  if (!result.matched || result.nutrients === null) {
+    const llmNutrients = await estimateNutrients(foodName)
+    if (llmNutrients !== null) {
+      return { foodName, grams, nutrients: llmNutrients, llmEstimated: true }
+    }
+    return { foodName, grams, nutrients: null, llmEstimated: false }
+  }
+
+  return { foodName, grams, nutrients: result.nutrients, llmEstimated }
+}
+
 export async function estimateRecipe(recipe: MealieRecipe): Promise<EstimateResult> {
   const matchedIngredients: IngredientMatch[] = []
   const unmatchedNames: string[] = []
   let totalNutrients = emptyNutrients()
 
-  for (const ing of recipe.recipeIngredient) {
-    const foodName = ing.food?.name
-    const quantity = ing.quantity
+  const outcomes = await Promise.all(recipe.recipeIngredient.map((ing) => evaluateIngredient(ing)))
 
-    if (!foodName || quantity == null || quantity <= 0) {
+  for (const outcome of outcomes) {
+    if (outcome === null) continue
+
+    if (outcome.grams === null || outcome.nutrients === null) {
+      unmatchedNames.push(outcome.foodName)
+      matchedIngredients.push({ name: outcome.foodName, grams: outcome.grams, matched: false, nutrients: null })
       continue
     }
 
-    let grams = convertToGrams(quantity, ing.unit)
-    let llmEstimated = false
-
-    if (grams === null) {
-      const unitName = ing.unit?.name
-      if (unitName) {
-        const llmGrams = await estimateGrams(quantity, unitName, foodName)
-        if (llmGrams !== null) {
-          grams = llmGrams
-          llmEstimated = true
-        }
-      }
-    }
-
-    if (grams === null) {
-      unmatchedNames.push(foodName)
-      matchedIngredients.push({ name: foodName, grams: null, matched: false, nutrients: null })
-      continue
-    }
-
-    const result = await lookupNutrients(foodName, ing.unit?.name)
-
-    if (!result.matched || result.nutrients === null) {
-      const llmNutrients = await estimateNutrients(foodName)
-      if (llmNutrients !== null) {
-        totalNutrients = addToTotal(totalNutrients, llmNutrients, grams)
-        matchedIngredients.push({ name: foodName, grams, matched: true, nutrients: llmNutrients, llmEstimated: true })
-        continue
-      }
-      unmatchedNames.push(foodName)
-      matchedIngredients.push({ name: foodName, grams, matched: false, nutrients: null })
-      continue
-    }
-
-    totalNutrients = addToTotal(totalNutrients, result.nutrients, grams)
-    matchedIngredients.push({ name: foodName, grams, matched: true, nutrients: result.nutrients, llmEstimated })
+    totalNutrients = addToTotal(totalNutrients, outcome.nutrients, outcome.grams)
+    matchedIngredients.push({
+      name: outcome.foodName,
+      grams: outcome.grams,
+      matched: true,
+      nutrients: outcome.nutrients,
+      llmEstimated: outcome.llmEstimated,
+    })
   }
 
   const servings = recipe.recipeServings ?? recipe.recipeYieldQuantity ?? 1
