@@ -21,7 +21,7 @@ async function processBackfill(): Promise<void> {
     let tagOnly = 0
     let filtered = 0
 
-    for (const slug of allSlugs) {
+    const processSlug = async (slug: string): Promise<void> => {
       processed++
 
       try {
@@ -72,6 +72,12 @@ async function processBackfill(): Promise<void> {
         logger.info({ processed, total: allSlugs.length, updated, skipped, manual, tagOnly, filtered, errors }, "Backfill progress")
       }
     }
+
+    let pending: Promise<void> = Promise.resolve()
+    for (const slug of allSlugs) {
+      pending = pending.then(() => processSlug(slug))
+    }
+    await pending
 
     logger.info({ processed, total: allSlugs.length, updated, skipped, manual, tagOnly, filtered, errors }, "Backfill complete")
   } catch (err) {
