@@ -410,23 +410,27 @@ export function historyRoutes(app: FastifyInstance): void {
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     })
+    res.flushHeaders()
 
     clients.add(res)
     ensureSubscription()
     res.write(`data: ${JSON.stringify(getHistory())}\n\n`)
 
-    const keepalive = setInterval(() => {
-      try {
-        res.write(": keepalive\n\n")
-      } catch {
-        // connection already gone; cleanup runs on close
-      }
-    }, 15000)
-    keepalive.unref()
-
-    req.raw.on("close", () => {
+    const cleanup = () => {
       clearInterval(keepalive)
       clients.delete(res)
-    })
+    }
+    const keepalive = setInterval(() => {
+      try {
+        res.write(`event: heartbeat\ndata: {"timestamp":${Date.now()}}\n\n`)
+      } catch {
+        cleanup()
+      }
+    }, 10000)
+    keepalive.unref()
+
+    req.raw.on("aborted", cleanup)
+    req.raw.on("close", cleanup)
+    res.on("error", cleanup)
   })
 }
