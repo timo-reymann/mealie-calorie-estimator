@@ -44,7 +44,7 @@ function asColor(value: unknown, fallback: string): string {
   if (digits.length !== 3 && digits.length !== 6) return fallback
 
   for (const digit of digits) {
-    const code = digit.toLowerCase().charCodeAt(0)
+    const code = digit.toLowerCase().codePointAt(0) ?? 0
     const isDigit = code >= 48 && code <= 57
     const isLowerHex = code >= 97 && code <= 102
     if (!isDigit && !isLowerHex) return fallback
@@ -70,7 +70,8 @@ function normalizeColors(
 }
 
 export async function fetchMealieTheme(): Promise<MealieTheme> {
-  const base = config.mealie.url.replace(/\/+$/, "")
+  let base = config.mealie.url
+  while (base.endsWith("/")) base = base.slice(0, -1)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), config.mealie.timeoutMs)
 
