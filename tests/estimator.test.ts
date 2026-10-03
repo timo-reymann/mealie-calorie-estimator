@@ -214,15 +214,27 @@ describe("hasManualCalories", () => {
 })
 
 describe("buildManualAckPatch", () => {
-  it("sets hash and note, leaves nutrition untouched", () => {
+  it("sets hash and note, omits nutrition so existing calories survive", () => {
     const recipe = makeRecipe({
       nutrition: { calories: "400", carbohydrateContent: null, cholesterolContent: null, fatContent: null, fiberContent: null, proteinContent: null, saturatedFatContent: null, sodiumContent: null, sugarContent: null, transFatContent: null, unsaturatedFatContent: null },
       extras: {},
     })
     const patch = buildManualAckPatch(recipe, "manual-hash")
 
-    expect(patch.nutrition).toEqual({})
+    expect(patch.nutrition).toBeUndefined()
     expect(patch.extras.calorie_estimator_hash).toBe("manual-hash")
     expect(patch.extras.calorie_estimator_note).toBe("Manual — preserved existing calorie entry")
+  })
+
+  it("preserves pre-existing extras", () => {
+    const recipe = makeRecipe({
+      nutrition: null,
+      extras: { my_user_extra: "keepme", calorie_estimator_tags: JSON.stringify(["high-protein"]) },
+    })
+    const patch = buildManualAckPatch(recipe, "manual-hash")
+
+    expect(patch.extras.my_user_extra).toBe("keepme")
+    expect(patch.extras.calorie_estimator_tags).toBe(JSON.stringify(["high-protein"]))
+    expect(patch.extras.calorie_estimator_hash).toBe("manual-hash")
   })
 })

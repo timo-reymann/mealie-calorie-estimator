@@ -178,8 +178,8 @@ export function hasManualCalories(recipe: MealieRecipe): boolean {
 
 export function buildManualAckPatch(recipe: MealieRecipe, hash: string): NutritionPatch {
   return {
-    nutrition: {},
     extras: {
+      ...recipe.extras,
       calorie_estimator_hash: hash,
       calorie_estimator_unmatched: JSON.stringify([]),
       calorie_estimator_note: "Manual — preserved existing calorie entry",

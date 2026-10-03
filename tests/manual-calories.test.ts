@@ -55,7 +55,7 @@ describe("Manual calories flow", () => {
     const hash = computeIngredientHash(recipe)
     const patch = buildManualAckPatch(recipe, hash)
 
-    expect(patch.nutrition).toEqual({}) // calories unchanged
+    expect(patch.nutrition).toBeUndefined() // omit key so Mealie leaves calories alone
     expect(patch.extras.calorie_estimator_hash).toBe(hash)
     expect(patch.extras.calorie_estimator_note).toContain("Manual")
   })

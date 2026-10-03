@@ -144,6 +144,6 @@ export interface EstimateResult {
 }
 
 export interface NutritionPatch {
-  nutrition: Partial<MealieNutrition>
+  nutrition?: Partial<MealieNutrition>
   extras: Record<string, string>
 }
