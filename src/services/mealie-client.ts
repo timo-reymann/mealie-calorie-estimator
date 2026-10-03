@@ -133,19 +133,26 @@ interface TagsPagination {
 }
 
 export async function getOrCreateTags(names: string[], householdId?: string | null): Promise<MealieTag[]> {
-  const tags: MealieTag[] = []
   const token = getMealieToken(householdId)
-  for (const name of names) {
-    try {
-      const tag = await request<MealieTag>("POST", "/api/organizers/tags", JSON.stringify({ name }), token)
-      tags.push(tag)
-    } catch {
-      const all = await request<TagsPagination>("GET", "/api/organizers/tags?perPage=-1", undefined, token)
-      const existing = all.items.find((t) => t.name === name)
-      if (existing) {
-        tags.push(existing)
+
+  const created = await Promise.all(
+    names.map(async (name) => {
+      try {
+        return await request<MealieTag>("POST", "/api/organizers/tags", JSON.stringify({ name }), token)
+      } catch {
+        return null
       }
-    }
+    }),
+  )
+
+  if (!created.some((tag) => tag === null)) {
+    return created.filter((tag): tag is MealieTag => tag !== null)
   }
-  return tags
+
+  const all = await request<TagsPagination>("GET", "/api/organizers/tags?perPage=-1", undefined, token)
+  const existingByName = new Map<string, MealieTag>(all.items.map((t) => [t.name, t]))
+
+  return created
+    .map((tag, i) => tag ?? existingByName.get(names[i]))
+    .filter((tag): tag is MealieTag => tag !== undefined)
 }
