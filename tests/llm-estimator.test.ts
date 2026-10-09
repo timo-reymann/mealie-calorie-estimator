@@ -111,3 +111,89 @@ describe("estimateGrams", () => {
     expect(result).toBeNull()
   })
 })
+
+describe("estimateGrams timeout", () => {
+  it("passes an abort signal to the request", async () => {
+    config.llm.enabled = true
+    config.llm.apiKey = "sk-test"
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "100" } }],
+      }),
+    })
+    vi.stubGlobal("fetch", mockFetch)
+
+    await estimateGrams(1, "Dose", "Mais")
+
+    expect(mockFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it("returns null when the request times out", async () => {
+    config.llm.enabled = true
+    config.llm.apiKey = "sk-test"
+    const originalTimeout = config.llm.timeoutMs
+    config.llm.timeoutMs = 10
+
+    const mockFetch = vi.fn().mockImplementation((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(init.signal?.reason))
+      }),
+    )
+    vi.stubGlobal("fetch", mockFetch)
+
+    try {
+      const result = await estimateGrams(1, "Glas", "Gurken")
+      expect(result).toBeNull()
+    } finally {
+      config.llm.timeoutMs = originalTimeout
+    }
+  })
+})
+
+describe("estimateGrams recipe note", () => {
+  function stubGrams(grams: string) {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: grams } }] }),
+    })
+    vi.stubGlobal("fetch", mockFetch)
+    return mockFetch
+  }
+
+  it("passes the note to the LLM", async () => {
+    config.llm.enabled = true
+    config.llm.apiKey = "sk-test"
+    const mockFetch = stubGrams("120")
+
+    await estimateGrams(1, "Stück", "Süsskartoffel", "klein")
+
+    const prompt = JSON.parse(mockFetch.mock.calls[0][1].body).messages[0].content
+    expect(prompt).toContain("Süsskartoffel")
+    expect(prompt).toContain('"klein"')
+  })
+
+  it("does not reuse a cached estimate for a different note", async () => {
+    config.llm.enabled = true
+    config.llm.apiKey = "sk-test"
+    const mockFetch = stubGrams("150")
+
+    await estimateGrams(1, "Stück", "Zwiebel", "klein")
+    await estimateGrams(1, "Stück", "Zwiebel", "gross")
+    await estimateGrams(1, "Stück", "Zwiebel", "klein")
+
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps the prompt unchanged without a note", async () => {
+    config.llm.enabled = true
+    config.llm.apiKey = "sk-test"
+    const mockFetch = stubGrams("80")
+
+    await estimateGrams(1, "Stück", "Karotte")
+
+    const prompt = JSON.parse(mockFetch.mock.calls[0][1].body).messages[0].content
+    expect(prompt).not.toContain("recipe adds")
+  })
+})

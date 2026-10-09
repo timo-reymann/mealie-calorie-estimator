@@ -1,6 +1,8 @@
-import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe } from "../types.js"
+import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe, EstimateResult } from "../types.js"
 import { getOrCreateTags, patchRecipe } from "./mealie-client.js"
-import { estimateRecipe, buildNutritionPatch } from "./estimator.js"
+import { estimateRecipe, buildNutritionPatch, mergeNutritionCalculationNote } from "./estimator.js"
+import { createProgressReporter } from "./progress.js"
+import { rememberFailure } from "../utils/recent-failures.js"
 
 export function getCalorieTag(kcal: number | null): string | null {
   if (kcal === null) return null
@@ -110,19 +112,30 @@ export async function estimateAndTag(
   matchedCount: number
   unmatchedCount: number
 }> {
-  const result = await estimateRecipe(recipe)
-  const nutritionPatch = buildNutritionPatch(result, hash)
-  const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients, householdId)
-  await patchRecipe(recipe.slug, {
-    ...nutritionPatch,
-    tags,
-    extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
-  }, householdId)
-  return {
-    calories: result.perServingNutrients.kcalPer100g,
-    tagSlugs,
-    perServingNutrients: result.perServingNutrients,
-    matchedCount: result.matchedCount,
-    unmatchedCount: result.unmatchedCount,
+  const progress = createProgressReporter(recipe, householdId)
+  let result: EstimateResult
+  try {
+    result = await estimateRecipe(recipe, { stack: new Set([recipe.slug]), progress: progress.tracker })
+    await progress.stop()
+    const nutritionPatch = buildNutritionPatch(result, hash)
+    const notes = mergeNutritionCalculationNote(recipe, result)
+    const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients, householdId)
+    await patchRecipe(recipe.slug, {
+      ...nutritionPatch,
+      tags,
+      extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
+      notes,
+    }, householdId)
+    return {
+      calories: result.perServingNutrients.kcalPer100g,
+      tagSlugs,
+      perServingNutrients: result.perServingNutrients,
+      matchedCount: result.matchedCount,
+      unmatchedCount: result.unmatchedCount,
+    }
+  } catch (err) {
+    rememberFailure(recipe.slug, hash)
+    await progress.abort()
+    throw err
   }
 }

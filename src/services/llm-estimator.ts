@@ -4,21 +4,28 @@ import { getCachedLlmEstimate, setCachedLlmEstimate, getCachedLlmNutrients, setC
 import { waitForRateLimit, RateLimitType } from "../utils/rate-limiter.js"
 import type { NutrientSet } from "../types.js"
 
-export async function estimateGrams(quantity: number, unitName: string, foodName: string): Promise<number | null> {
+export async function estimateGrams(quantity: number, unitName: string, foodName: string, hint: string | null = null): Promise<number | null> {
   if (!config.llm.enabled) return null
   if (!config.llm.apiKey) {
     logger.warn("LLM enabled but LLM_API_KEY is not set")
     return null
   }
 
-  const cached = getCachedLlmEstimate(unitName, foodName)
+  const cacheKey = hint ? `v2|${foodName} (${hint})` : `v2|${foodName}`
+  const hintText = hint ? ` The recipe adds this note: "${hint}". Take it into account, for example size or preparation.` : ""
+
+  const cached = getCachedLlmEstimate(unitName, cacheKey)
   if (cached !== undefined) {
     const totalGrams = cached * quantity
     logger.debug({ unitName, foodName, gramsPerUnit: cached, totalGrams }, "LLM estimate cache hit")
     return totalGrams
   }
 
-  const prompt = `Estimate the weight in grams for 1 ${unitName} of ${foodName}. Consider typical packaging sizes and food densities. Return ONLY a single number (the weight in grams). No explanation, no unit, no punctuation. If you cannot estimate, return 0.`
+  const normalizedUnit = unitName.trim().toLowerCase()
+  const isPieceUnit = ["stück", "stuck", "piece", "pieces"].includes(normalizedUnit)
+  const prompt = isPieceUnit
+    ? `Estimate the typical edible weight in grams for ONE individual ${foodName}.${hintText} Interpret this as one single edible item, not a package, serving, bunch, container, or multiple pieces. Return ONLY a single integer number representing the weight in grams of ONE individual item. No explanation, no unit, no punctuation. If you cannot estimate, return 0.`
+    : `Estimate the weight in grams for 1 ${unitName} of ${foodName}.${hintText} Do not interpret the unit as a package or container unless the unit explicitly means that. Return ONLY a single number (the weight in grams). No explanation, no unit, no punctuation. If you cannot estimate, return 0.`
 
   try {
     await waitForRateLimit(RateLimitType.Llm)
@@ -35,6 +42,7 @@ export async function estimateGrams(quantity: number, unitName: string, foodName
         temperature: config.llm.temperature,
         max_tokens: config.llm.maxTokensGrams,
       }),
+      signal: AbortSignal.timeout(config.llm.timeoutMs),
     })
 
     if (!res.ok) {
@@ -61,7 +69,7 @@ export async function estimateGrams(quantity: number, unitName: string, foodName
     const gramsPerUnit = num
     const totalGrams = gramsPerUnit * quantity
 
-    setCachedLlmEstimate(unitName, foodName, gramsPerUnit)
+    setCachedLlmEstimate(unitName, cacheKey, gramsPerUnit)
     logger.debug({ unitName, foodName, gramsPerUnit, totalGrams }, "LLM estimate obtained")
 
     return totalGrams
@@ -97,6 +105,7 @@ export async function estimateNutrients(foodName: string): Promise<NutrientSet |
         temperature: config.llm.temperature,
         max_tokens: config.llm.maxTokensNutrients,
       }),
+      signal: AbortSignal.timeout(config.llm.timeoutMs),
     })
 
     if (!res.ok) {

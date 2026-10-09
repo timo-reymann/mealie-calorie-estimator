@@ -61,6 +61,97 @@ function queryOf(input: RequestInfo | URL): string {
 }
 
 describe("estimateRecipe", () => {
+  it("includes referenced recipe nutrition using the referenced quantity as servings", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const query = queryOf(input)
+      if (query === "Testmilch-ReferencedRecipe") return hitsResponse({ "energy-kcal_100g": 200 }, "Testmilch-ReferencedRecipe")
+      if (query === "Unterrezept") return hitsResponse({ "energy-kcal_100g": 500 }, "Unterrezept")
+      return emptyHitsResponse()
+    })
+
+    const subrecipe: MealieRecipe = {
+      slug: "subrecipe", name: "Unterrezept", recipeYield: "5 servings", recipeYieldQuantity: null,
+      recipeServings: 5, recipeIngredient: [ingredient("Unterrezept", 100)], nutrition: null, tags: [], extras: {}, householdId: null,
+    }
+    const parent = makeRecipe([
+      ingredient("Testmilch-ReferencedRecipe", 100),
+      { quantity: 4, unit: null, food: null, note: null, display: "4 Unterrezept", title: null, original_text: null, referencedRecipe: subrecipe },
+    ])
+
+    const result = await estimateRecipe(parent)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(result.matchedCount).toBe(2)
+    expect(result.unmatchedCount).toBe(0)
+    expect(result.totalNutrients.kcalPer100g).toBe(600)
+    expect(result.perServingNutrients.kcalPer100g).toBe(150)
+  })
+
+  it("uses an explicit OFF serving weight before the LLM for piece units", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const query = queryOf(input)
+      if (query === "Eier" || query === "Eier frisch") {
+        return new Response(JSON.stringify({
+          hits: [{
+            product_name: "Œufs frais BIO",
+            serving_size: "1 egg (60 g)",
+            serving_quantity: 60,
+            serving_quantity_unit: "g",
+            nutriments: { "energy-kcal_100g": 143, "proteins_100g": 12.6 },
+          }],
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      }
+      return emptyHitsResponse()
+    })
+
+    const result = await estimateRecipe(makeRecipe([{
+      quantity: 4,
+      unit: { id: "u-piece", name: "Stück", pluralName: "Stücke", abbreviation: "Stk.", standardQuantity: null, standardUnit: null },
+      food: { id: "eier", name: "Eier", pluralName: null, aliases: [] },
+      note: null,
+      display: "4 Stück Eier",
+      title: null,
+      original_text: null,
+    }]))
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(result.matchedCount).toBe(1)
+    expect(result.unmatchedCount).toBe(0)
+    expect(result.matchedIngredients[0].grams).toBe(240)
+    expect(result.matchedIngredients[0].llmEstimated).toBe(false)
+    expect(result.totalNutrients.kcalPer100g).toBeCloseTo(343.2, 5)
+    expect(result.perServingNutrients.kcalPer100g).toBe(86)
+  })
+
+  it("uses the weight from the food description before OFF and LLM", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const query = queryOf(input)
+      if (query.startsWith("Wachteleier")) {
+        return new Response(JSON.stringify({
+          hits: [{ product_name: "Wachteleier", serving_quantity: 60, serving_quantity_unit: "g", nutriments: { "energy-kcal_100g": 143 } }],
+        }), { status: 200, headers: { "content-type": "application/json" } })
+      }
+      return emptyHitsResponse()
+    })
+
+    const result = await estimateRecipe(makeRecipe([{
+      quantity: 4,
+      unit: { id: "u-piece", name: "Stück", pluralName: "Stücke", abbreviation: "Stk.", standardQuantity: null, standardUnit: null },
+      food: { id: "wachteleier", name: "Wachteleier", pluralName: null, aliases: [], description: "Klein [Stück=50g]" },
+      note: null,
+      display: "4 Stück Wachteleier",
+      title: null,
+      original_text: null,
+    }]))
+
+    expect(result.matchedIngredients[0].grams).toBe(200)
+    expect(result.matchedIngredients[0].gramsSource).toBe("food")
+    expect(result.matchedIngredients[0].llmEstimated).toBe(false)
+  })
+
   it("matches ingredients concurrently and aggregates nutrients in order", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const query = queryOf(input)
@@ -103,7 +194,7 @@ describe("estimateRecipe", () => {
 
     const result = await estimateRecipe(makeRecipe([sliceUnit, unknownUnit]))
 
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(result.matchedCount).toBe(0)
     expect(result.unmatchedCount).toBe(2)
     expect(result.matchedIngredients.map((i) => i.matched)).toEqual([false, false])

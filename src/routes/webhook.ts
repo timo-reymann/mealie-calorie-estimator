@@ -11,6 +11,7 @@ import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, es
 import { logger } from "../utils/logger.js"
 import { slugQueue } from "../utils/slug-queue.js"
 import { recordStart } from "../utils/execution-history.js"
+import { wasRecentlyFailed } from "../utils/recent-failures.js"
 
 function isEventRecipeData(v: unknown): v is EventRecipeData {
   if (typeof v !== "object" || v === null) return false
@@ -60,6 +61,12 @@ async function processWebhook(slug: string): Promise<void> {
       }, householdId)
       logger.info({ slug, tags: tagSlugs }, "Added missing auto-tags")
       handle.complete("tags-added", [`Added auto-tags: ${tagSlugs.join(", ")}`])
+      return
+    }
+
+    if (wasRecentlyFailed(slug, hash)) {
+      logger.info({ slug }, "Estimation for these ingredients failed a moment ago, not retrying")
+      handle.complete("skipped", ["Estimation for these ingredients failed a moment ago, not retrying"])
       return
     }
 

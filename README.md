@@ -112,6 +112,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `OFF_BASE_URL` | `https://world.openfoodfacts.org` | Open Food Facts base URL |
 | `OFF_MAX_RETRIES` | `3` | Retries for transient OFF search errors (429/5xx) |
 | `OFF_RETRY_BACKOFF_MS` | `500` | Base backoff between retries (doubles each attempt) |
+| `OFF_TIMEOUT_MS` | `60000` | Timeout per Open Food Facts request. A timed-out request counts as a failed attempt and is retried |
 | `LLM_ENABLED` | `false` | Enable LLM fallback for custom units and unmatched foods |
 | `LLM_API_KEY` | — | API key for OpenAI-compatible endpoint |
 | `LLM_BASE_URL` | `https://api.mistral.ai/v1` | LLM API base URL |
@@ -120,6 +121,9 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `LLM_TEMPERATURE` | `0.1` | LLM sampling temperature |
 | `LLM_MAX_TOKENS_GRAMS` | `10` | Max tokens for gram estimation responses |
 | `LLM_MAX_TOKENS_NUTRIENTS` | `200` | Max tokens for nutrient estimation responses |
+| `LLM_TIMEOUT_MS` | `300000` | Timeout per LLM request (5 minutes, enough for a cold start of a local model). A timed-out request counts as no estimate for that ingredient |
+| `PROGRESS_ENABLED` | `true` | Show the progress of a running estimation in the recipe notes |
+| `PROGRESS_INTERVAL_MS` | `10000` | Minimum time between two progress updates. Estimations that finish faster write no progress at all |
 | `ESTIMATE_STRATEGY` | `all` | Estimation strategy: `all` (estimate every recipe) or `tagged` (only estimate recipes with the `ESTIMATE_TAG` tag) |
 | `ESTIMATE_TAG` | `estimate` | Tag name to check when `ESTIMATE_STRATEGY=tagged` |
 | `EVENT_DEBOUNCE_MS` | `2000` | Quiet period before a recipe event is processed. Bursts of rapid saves for the same recipe are coalesced into one run and all writes for a recipe are serialized, so concurrent patches cannot duplicate ingredients |
@@ -280,3 +284,79 @@ The test profile starts Mealie (SQLite), a mock Open Food Facts server, and the 
 ```sh
 npm run build
 ```
+
+
+## Fork: referenced recipe nutrition
+
+This fork adds recursive nutrition estimation for Mealie ingredients that reference another recipe.
+
+### Behavior
+
+- Referenced recipes are estimated recursively from their own ingredients. Nutrition stored on the referenced recipe (including manual values) is ignored.
+- The referenced recipe's own servings/yield are used to calculate nutrition per portion.
+- The quantity on the parent recipe is the number of referenced-recipe portions that are included. The unit is ignored.
+- Nested referenced recipes are supported.
+- Circular references are detected and ignored safely.
+- The ingredient hash includes the ingredients and servings of referenced recipes (recursively), so processing the parent after a change in a referenced recipe re-estimates it. The parent is not re-estimated automatically when only the referenced recipe is saved.
+
+### When a recipe is estimated again
+
+A recipe is only estimated again when its ingredient hash changes. The hash covers quantities, units, foods, linked recipes, the servings, the ingredient notes, the standard values of the units from Mealie and a calculation version. So saving a recipe after changing any of these is enough, and after an update of the estimator that changes the calculation (the version is raised) every recipe is estimated again the next time it is saved. Saving without a change does nothing; use `POST /estimate` to force a new estimation.
+
+### Nutrition calculation details
+
+- The recipe notes get a "Nutrition calculation details" entry as a Markdown table with quantity, weight in grams and calories per ingredient. Weights that were not given in grams are marked with their source (`Zutat` = weight from the food description, `Open Food Facts` = serving size from Open Food Facts, `LLM` = estimated by the LLM). It is replaced on every estimation, other notes stay untouched.
+- Open Food Facts results are ranked: exact name matches and products with calories are preferred, processed forms (e.g. powder, sauce) are penalized.
+- For piece units (e.g. "Stück") the search prefers fresh products by adding "frisch" to the query.
+
+### Edible share of an ingredient
+
+Some ingredients are only partly eaten, e.g. bones in a stock or a marinade that is poured away. Put a percentage in square brackets into the ingredient's note field in Mealie to count only that share:
+
+- `[30%]` counts 30 % of the ingredient (`am besten Spitzbein [30%]` works too, other text in the note is ignored)
+- `[0%]` or `nicht mitrechnen` leaves the ingredient out completely
+- Ingredients without a marker are counted in full
+
+The marker works for normal ingredients and for linked recipes. The share is listed in the "Nutrition calculation details" note and is part of the ingredient hash, so changing it triggers a new estimation.
+
+### Weights in the Mealie food description
+
+Piece units like "Stück" or "Bund" have no fixed weight. You can store it with the food in Mealie (Settings → Data Management → Foods → description) so it is maintained in one place:
+
+```text
+[Stück=55g] [Bund=30g] [Esslöffel=13g]
+```
+
+- The entry whose name matches the unit used in the ingredient is taken (case and umlauts do not matter, `Stk` and `Stueck` count as `Stück`). Other text in the description is ignored.
+- Allowed are `g`, `kg` and decimals with a comma or dot, e.g. `[Stück=1,5kg]`.
+- Order of the weight sources: food description, unit standard values from Mealie, Open Food Facts serving size, LLM. The "Nutrition calculation details" table marks the first case as `(Zutat)`.
+- Changing the description changes the ingredient hash, so the recipe is estimated again the next time it is saved.
+
+### Ingredient notes and weight estimates
+
+When a weight has to be estimated by the LLM (for example for "Stück"), the ingredient's note field is passed along, so "klein", "gross" or "ohne Knochen" are taken into account. Markers like `[30%]` are removed first. Estimates are cached per ingredient and note.
+
+### Progress of a running estimation
+
+Estimating a recipe can take several minutes because Open Food Facts allows only a limited number of searches per minute. While it runs, the recipe notes show a "Nutrition calculation progress" entry such as `█████░░░░░ 50 % (7 von 14 Zutaten, 2 Min 10 s)`. Reload the recipe page in Mealie to see the current state. The entry is replaced by the "Nutrition calculation details" table when the estimation is done, or removed if it fails. Linked recipes count with their own ingredients.
+
+If an estimation fails, the same ingredients are not retried automatically for one minute, so the progress updates cannot trigger an endless loop of new runs.
+
+### Fork documentation
+
+- [UPSTREAM.md](./UPSTREAM.md) — upstream relationship and synchronization workflow
+- [CHANGELOG.md](./CHANGELOG.md) — fork changes and validation history
+- [DEVELOPMENT.md](./DEVELOPMENT.md) — development and testing
+- [DEPLOYMENT.md](./DEPLOYMENT.md) — production deployment and verification
+
+### Fork Docker image
+
+The feature image is published to GHCR:
+
+```text
+ghcr.io/m00nhunter/mealie-calorie-estimator:referenced-recipe-nutrition
+```
+
+Every build is also published with a fixed tag `sha-<commit>`. Releases get a version number: pushing the git tag `v1.14.0` publishes `ghcr.io/m00nhunter/mealie-calorie-estimator:1.14.0`. See [DEPLOYMENT.md](./DEPLOYMENT.md) for the release and rollback procedure.
+
+GitHub Actions runs the test suite and typecheck before publishing the Docker image.

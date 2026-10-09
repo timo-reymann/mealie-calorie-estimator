@@ -7,6 +7,7 @@ export interface MealieIngredient {
   title: string | null
   originalText: string | null
   referenceId?: string | null
+  referencedRecipe?: MealieRecipe | null
 }
 
 export interface MealieUnit {
@@ -23,6 +24,13 @@ export interface MealieFood {
   name: string
   pluralName: string | null
   aliases: string[]
+  description?: string | null
+}
+
+export interface RecipeNote {
+  title: string
+  text: string
+  referenceId?: string
 }
 
 export interface MealieNutrition {
@@ -54,6 +62,7 @@ export interface MealieRecipe {
   recipeServings: number | null
   recipeIngredient: MealieIngredient[]
   nutrition: MealieNutrition | null
+  notes?: RecipeNote[] | null
   tags: MealieTag[] | null
   extras: Record<string, string> | null
   householdId?: string | null
@@ -62,6 +71,7 @@ export interface MealieRecipe {
 
 export interface MealieRecipePatch {
   nutrition?: Partial<MealieNutrition>
+  notes?: RecipeNote[]
   extras?: Record<string, string>
   tags?: MealieTag[]
 }
@@ -76,6 +86,12 @@ export interface OffSearchResult {
 
 export interface OffProduct {
   product_name: string
+  serving_size?: string | null
+  serving_quantity?: number | string | null
+  serving_quantity_unit?: string | null
+  categories?: string | null
+  labels?: string | null
+  ingredients_text?: string | null
   nutriments?: OffNutriments
   nutriscore_grade?: string
 }
@@ -127,9 +143,12 @@ export interface NutrientSet {
 export interface IngredientMatch {
   name: string
   grams: number | null
+  quantityLabel?: string
+  kcalContribution?: number | null
   matched: boolean
   nutrients: NutrientSet | null
   llmEstimated?: boolean
+  gramsSource?: "database" | "llm" | "food"
 }
 
 export interface EstimateResult {

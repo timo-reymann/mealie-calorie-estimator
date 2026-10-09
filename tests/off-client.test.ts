@@ -28,6 +28,47 @@ const MILK_NUTRIMENTS = {
 }
 
 describe("lookupNutrients", () => {
+  it("does not choose a much weaker semantic match just because it has kcal data", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        hits: [
+          { product_name: "Frühlingszwiebel", nutriments: {} },
+          { product_name: "Frühlingszwiebel Schmelzkäsezubereitung", nutriments: { "energy-kcal_100g": 307 } },
+        ],
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    )
+
+    const result = await lookupNutrients("Frühlingszwiebel frisch", "Stück")
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.matched).toBe(false)
+    expect(result.nutrients).toBeNull()
+  })
+
+  it("accepts kcal data from a near-equivalent ranked match", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        hits: [
+          { product_name: "Hon-Mirin", nutriments: {} },
+          { product_name: "Hon Mirin", nutriments: { "energy-kcal_100g": 196 } },
+        ],
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    )
+
+    const result = await lookupNutrients("Hon-Mirin")
+
+    expect(result.matched).toBe(true)
+    expect(result.nutrients?.kcalPer100g).toBe(196)
+    expect(result.productName).toBe("Hon Mirin")
+  })
+
+
   it("returns cached value without calling API", async () => {
     setCachedNutrients("flour", {
       kcalPer100g: 364, proteinPer100g: 10, carbsPer100g: 76, fatPer100g: 1,
