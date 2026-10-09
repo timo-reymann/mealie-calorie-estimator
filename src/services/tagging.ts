@@ -116,7 +116,7 @@ export async function estimateAndTag(
   await patchRecipe(recipe.slug, {
     ...nutritionPatch,
     tags,
-    extras: { ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
+    extras: { ...recipe.extras, ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
   }, householdId)
   return {
     calories: result.perServingNutrients.kcalPer100g,
