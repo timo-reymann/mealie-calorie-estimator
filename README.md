@@ -92,6 +92,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
          MEALIE_URL: http://mealie:9000
          MEALIE_API_TOKEN: ${MEALIE_API_TOKEN}
          OFF_LANGUAGE: de
+         OFF_USER_AGENT: MealieCalorieEstimator/1.0 (your@email.com)
          LLM_ENABLED: ${LLM_ENABLED:-false}
          LLM_API_KEY: ${LLM_API_KEY:-}
    ```
