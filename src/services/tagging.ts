@@ -1,6 +1,10 @@
 import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe } from "../types.js"
+import { config } from "../config.js"
 import { getOrCreateTags, patchRecipe } from "./mealie-client.js"
 import { estimateRecipe, buildNutritionPatch } from "./estimator.js"
+import { localizeTag } from "./tag-locale.js"
+
+const TAG_LOCALE_EXTRA_KEY = "calorie_estimator_tag_locale"
 
 export function getCalorieTag(kcal: number | null): string | null {
   if (kcal === null) return null
@@ -24,10 +28,11 @@ export function getDigestibilityTag(nutrients: NutrientSet): string {
 }
 
 export function computeTags(perServing: NutrientSet): string[] {
+  const locale = config.tagging.locale
   const tags: string[] = []
   const calorieTag = getCalorieTag(perServing.kcalPer100g)
-  if (calorieTag) tags.push(calorieTag)
-  tags.push(getDigestibilityTag(perServing))
+  if (calorieTag) tags.push(localizeTag(calorieTag, locale))
+  tags.push(localizeTag(getDigestibilityTag(perServing), locale))
   return tags
 }
 
@@ -85,8 +90,17 @@ export function mergeTags(
 export function tagsAreComplete(recipe: MealieRecipe): boolean {
   const slugs: string[] = JSON.parse(recipe.extras?.calorie_estimator_tags || "[]")
   if (slugs.length === 0) return false
+  const appliedLocale = recipe.extras?.[TAG_LOCALE_EXTRA_KEY] || "en"
+  if (appliedLocale !== config.tagging.locale) return false
   const current = new Set((recipe.tags || []).map(t => t.slug))
   return slugs.every(s => current.has(s))
+}
+
+export function buildAutoTagExtras(tagSlugs: string[]): Record<string, string> {
+  return {
+    calorie_estimator_tags: JSON.stringify(tagSlugs),
+    [TAG_LOCALE_EXTRA_KEY]: config.tagging.locale,
+  }
 }
 
 export async function resolveAndMergeTags(
@@ -116,7 +130,7 @@ export async function estimateAndTag(
   await patchRecipe(recipe.slug, {
     ...nutritionPatch,
     tags,
-    extras: { ...recipe.extras, ...nutritionPatch.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
+    extras: { ...recipe.extras, ...nutritionPatch.extras, ...buildAutoTagExtras(tagSlugs) },
   }, householdId)
   return {
     calories: result.perServingNutrients.kcalPer100g,
