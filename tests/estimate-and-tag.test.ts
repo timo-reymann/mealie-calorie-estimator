@@ -66,6 +66,8 @@ describe("estimateAndTag", () => {
       ingredient_parser_hash: "abc123",
       some_other_key: "keep me",
       calorie_estimator_hash: "newhash",
+      calorie_estimator_tags: JSON.stringify(["Calories:Moderate", "Digest:Unknown"]),
+      calorie_estimator_tag_locale: "en",
     })
   })
 

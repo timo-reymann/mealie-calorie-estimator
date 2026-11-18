@@ -1,5 +1,6 @@
 import { createRequire } from "node:module"
 const { version } = createRequire(import.meta.url)("../package.json")
+import { resolveTagLocale } from "./services/tag-locale.js"
 
 export function getMealieToken(householdId?: string | null): string {
   if (householdId) {
@@ -61,6 +62,10 @@ export const config = {
   estimate: {
     strategy: (process.env.ESTIMATE_STRATEGY || "all") as "all" | "tagged",
     tag: process.env.ESTIMATE_TAG || "estimate",
+  },
+
+  tagging: {
+    locale: resolveTagLocale(process.env.TAG_LOCALE),
   },
 
   events: {

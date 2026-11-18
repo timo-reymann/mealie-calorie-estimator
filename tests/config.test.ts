@@ -59,3 +59,29 @@ describe("getMealieToken", () => {
     expect(gt()).toBe("fallback-token")
   })
 })
+
+describe("TAG_LOCALE", () => {
+  it("defaults to en", async () => {
+    delete process.env.TAG_LOCALE
+    const { config } = await import("../src/config.js")
+    expect(config.tagging.locale).toBe("en")
+  })
+
+  it("uses the configured locale", async () => {
+    process.env.TAG_LOCALE = "de"
+    const { config } = await import("../src/config.js")
+    expect(config.tagging.locale).toBe("de")
+  })
+
+  it("normalizes case and whitespace", async () => {
+    process.env.TAG_LOCALE = "  DE "
+    const { config } = await import("../src/config.js")
+    expect(config.tagging.locale).toBe("de")
+  })
+
+  it("falls back to en for unsupported locales", async () => {
+    process.env.TAG_LOCALE = "fr"
+    const { config } = await import("../src/config.js")
+    expect(config.tagging.locale).toBe("en")
+  })
+})
