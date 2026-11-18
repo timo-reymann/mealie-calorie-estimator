@@ -6,7 +6,7 @@ import {
   buildManualAckPatch,
   shouldEstimate,
 } from "../services/estimator.js"
-import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag } from "../services/tagging.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag, buildAutoTagExtras } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 import { slugQueue } from "../utils/slug-queue.js"
 import { recordStart } from "../utils/execution-history.js"
@@ -52,7 +52,7 @@ async function processBackfill(): Promise<void> {
             const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, householdId)
             await patchRecipe(slug, {
               tags,
-              extras: { ...recipe.extras, calorie_estimator_tags: JSON.stringify(tagSlugs) },
+              extras: { ...recipe.extras, ...buildAutoTagExtras(tagSlugs) },
             }, householdId)
             tagOnly++
             handle.complete("tags-added", [`Added auto-tags: ${tagSlugs.join(", ")}`])

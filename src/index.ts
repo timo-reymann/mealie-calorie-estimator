@@ -8,8 +8,17 @@ import { estimateRoutes } from "./routes/estimate.js"
 import { backfillRoutes } from "./routes/backfill.js"
 import { historyRoutes } from "./routes/history.js"
 import { seedDevHistory } from "./utils/dev-seed.js"
+import { TAG_LOCALES } from "./services/tag-locale.js"
 
 async function main() {
+  const requestedLocale = (process.env.TAG_LOCALE || "en").toLowerCase().trim()
+  if (!(TAG_LOCALES as readonly string[]).includes(requestedLocale)) {
+    logger.warn(
+      { requested: process.env.TAG_LOCALE, locale: config.tagging.locale },
+      "Unsupported TAG_LOCALE, falling back to en",
+    )
+  }
+
   await initCache()
   if (config.estimate.nutrientSource === "llm" && !(config.llm.enabled && config.llm.apiKey)) {
     logger.warn("NUTRIENT_SOURCE=llm but the LLM is not enabled or has no API key, falling back to Open Food Facts")

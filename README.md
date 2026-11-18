@@ -65,6 +65,19 @@ The digestibility heuristic relies on per-serving fat and calorie data — high 
 
 Tags are created automatically in Mealie when first needed. On re-estimation, old auto-tags are replaced but user-applied tags are preserved. If a recipe already has nutrition data but is missing auto-tags (e.g. after upgrading), they are added without re-estimating.
 
+### Tag Locale
+
+The auto-tag language is set with `TAG_LOCALE` and is independent of `OFF_LANGUAGE`, which controls the Open Food Facts search language. A German instance can keep English tags (`TAG_LOCALE=en`, the default), or create German tags like `Kalorien:Leicht` and `Verdauung:Unbekannt` with `TAG_LOCALE=de`.
+
+Supported locales:
+
+| `TAG_LOCALE` | Calorie tags | Digest tags |
+|---|---|---|
+| `en` (default) | `Calories:Light`, `Calories:Moderate`, `Calories:Hearty`, `Calories:Heavy` | `Digest:Easy`, `Digest:Moderate`, `Digest:Slow`, `Digest:Unknown` |
+| `de` | `Kalorien:Leicht`, `Kalorien:Mittel`, `Kalorien:Deftig`, `Kalorien:Schwer` | `Verdauung:Leicht`, `Verdauung:Mittel`, `Verdauung:Schwer`, `Verdauung:Unbekannt` |
+
+Unsupported values fall back to `en` with a startup warning. When `TAG_LOCALE` changes, existing auto-tags are replaced on the next run of each recipe (webhook event or `/estimate`) while user-applied tags are preserved. Run `POST /backfill` to migrate all recipes at once.
+
 ## Installation
 
 It's recommended to install it next to your Mealie instance using docker-compose.
@@ -125,6 +138,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `ESTIMATE_STRATEGY` | `all` | Estimation strategy: `all` (estimate every recipe) or `tagged` (only estimate recipes with the `ESTIMATE_TAG` tag) |
 | `ESTIMATE_TAG` | `estimate` | Tag name to check when `ESTIMATE_STRATEGY=tagged` |
 | `NUTRIENT_SOURCE` | `off` | Where nutrient values per 100g come from: `off` (Open Food Facts first, LLM fallback) or `llm` (LLM first, Open Food Facts fallback). `llm` requires `LLM_ENABLED=true` and is usually more accurate for plain ingredients, since Open Food Facts search returns packaged products (e.g. "cherry tomatoes" can match a pizza) |
+| `TAG_LOCALE` | `en` | Language of auto-generated tags: `en` or `de`. Independent of `OFF_LANGUAGE`; changing it replaces existing auto-tags on the next run |
 | `EVENT_DEBOUNCE_MS` | `2000` | Quiet period before a recipe event is processed. Bursts of rapid saves for the same recipe are coalesced into one run and all writes for a recipe are serialized, so concurrent patches cannot duplicate ingredients |
 | `MEALIE_RECIPE_URL_TEMPLATE` | `${MEALIE_URL}/recipe/{slug}` | URL template for recipe links on the history page, `{slug}` is replaced with the recipe slug |
 | `HISTORY_MAX_ENTRIES` | `200` | Maximum number of in-memory execution records kept for `/estimator/history` |
