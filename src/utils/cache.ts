@@ -67,6 +67,8 @@ export async function initCache(): Promise<void> {
     updated_at INTEGER NOT NULL
   )`)
 
+  migrateSchema()
+
   const cutoff = Date.now() - config.openFoodFacts.cacheTtlMs
   db.run("DELETE FROM nutrient_cache WHERE updated_at < ?", [cutoff])
   db.run("DELETE FROM llm_estimate_cache WHERE updated_at < ?", [cutoff])
@@ -74,6 +76,21 @@ export async function initCache(): Promise<void> {
 
   scheduleSave()
   isInitialized = true
+}
+
+const SCHEMA_VERSION = 1
+
+function migrateSchema(): void {
+  const result = db.exec("PRAGMA user_version")
+  const version = Number(result[0]?.values[0]?.[0] ?? 0)
+  if (version >= SCHEMA_VERSION) return
+
+  if (version < 1) {
+    db.run("DELETE FROM nutrient_cache")
+    db.run("DELETE FROM llm_nutrient_cache")
+  }
+
+  db.run(`PRAGMA user_version = ${SCHEMA_VERSION}`)
 }
 
 function normalizeKey(key: string): string {

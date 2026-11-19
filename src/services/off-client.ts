@@ -41,6 +41,10 @@ async function fetchWithRetry(url: string, query: string): Promise<Response | nu
   return lastResponse
 }
 
+function gramsToMg(value: number | null): number | null {
+  return value === null ? null : Math.round(value * 1000 * 10) / 10
+}
+
 function extractNutrients(n: OffNutriments): NutrientSet {
   const fat = n["fat_100g"] ?? null
   const saturated = n["saturated-fat_100g"] ?? null
@@ -63,8 +67,8 @@ function extractNutrients(n: OffNutriments): NutrientSet {
     unsaturatedFatPer100g: unsaturated,
     fiberPer100g: n["fiber_100g"] ?? null,
     sugarPer100g: n["sugars_100g"] ?? null,
-    sodiumPer100g: n["sodium_100g"] ?? null,
-    cholesterolPer100g: n["cholesterol_100g"] ?? null,
+    sodiumPer100g: gramsToMg(n["sodium_100g"] ?? null),
+    cholesterolPer100g: gramsToMg(n["cholesterol_100g"] ?? null),
   }
 }
 

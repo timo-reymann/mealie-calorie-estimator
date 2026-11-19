@@ -32,7 +32,7 @@ describe("lookupNutrients", () => {
     setCachedNutrients("flour", {
       kcalPer100g: 364, proteinPer100g: 10, carbsPer100g: 76, fatPer100g: 1,
       saturatedFatPer100g: 0.2, transFatPer100g: 0, unsaturatedFatPer100g: 0.8,
-      fiberPer100g: 2.7, sugarPer100g: 0.4, sodiumPer100g: 0.002, cholesterolPer100g: 0,
+      fiberPer100g: 2.7, sugarPer100g: 0.4, sodiumPer100g: 2, cholesterolPer100g: 0,
     })
     const result = await lookupNutrients("flour")
     expect(result.nutrients?.kcalPer100g).toBe(364)
@@ -50,6 +50,17 @@ describe("lookupNutrients", () => {
     expect(calledUrl).toContain("/search?")
     expect(calledUrl).toContain("q=Milch")
     expect(calledUrl).toContain("langs=de")
+  })
+
+  it("converts sodium and cholesterol from grams to milligrams", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      hitsResponse({ ...MILK_NUTRIMENTS, "sodium_100g": 1.1, "cholesterol_100g": 0.089 }, "Feta"),
+    )
+
+    const result = await lookupNutrients("Feta")
+
+    expect(result.nutrients?.sodiumPer100g).toBe(1100)
+    expect(result.nutrients?.cholesterolPer100g).toBe(89)
   })
 
   it("retries on a 503 and succeeds on a later attempt", async () => {
