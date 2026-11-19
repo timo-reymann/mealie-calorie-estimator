@@ -80,7 +80,7 @@ export async function estimateNutrients(foodName: string): Promise<NutrientSet |
     return cached
   }
 
-  const prompt = `Estimate nutritional values per 100g for "${foodName}". Return ONLY valid JSON with these keys (all numbers, no units): {"kcal":0,"protein":0,"carbs":0,"fat":0,"saturatedFat":0,"transFat":0,"fiber":0,"sugar":0,"sodium":0,"cholesterol":0}. kcal in kilocalories, sodium and cholesterol in milligrams, everything else in grams. Use typical values for the food. No explanation, no markdown.`
+  const prompt = `Estimate nutritional values per 100g for the recipe ingredient "${foodName}". The name may be in any language. Assume the ingredient as it is weighed in a recipe: uncooked (e.g. dry pasta or rice), raw produce, drained when canned in brine. Return ONLY valid JSON with these keys (all numbers, no units): {"kcal":0,"protein":0,"carbs":0,"fat":0,"saturatedFat":0,"transFat":0,"fiber":0,"sugar":0,"sodium":0,"cholesterol":0}. kcal in kilocalories, sodium and cholesterol in milligrams, everything else in grams. Use typical values for the food. No explanation, no markdown.`
 
   try {
     await waitForRateLimit(RateLimitType.Llm)

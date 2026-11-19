@@ -121,17 +121,36 @@ async function evaluateIngredient(ing: MealieIngredient): Promise<IngredientOutc
     return { foodName, grams: null, nutrients: null, llmEstimated: false }
   }
 
-  const result = await lookupNutrients(foodName, ing.unit?.name)
-
-  if (!result.matched || result.nutrients === null) {
-    const llmNutrients = await estimateNutrients(foodName)
-    if (llmNutrients !== null) {
-      return { foodName, grams, nutrients: llmNutrients, llmEstimated: true }
-    }
+  const resolved = await resolveNutrients(foodName, ing.unit?.name)
+  if (resolved === null) {
     return { foodName, grams, nutrients: null, llmEstimated: false }
   }
 
-  return { foodName, grams, nutrients: result.nutrients, llmEstimated }
+  return { foodName, grams, nutrients: resolved.nutrients, llmEstimated: llmEstimated || resolved.llmEstimated }
+}
+
+interface ResolvedNutrients {
+  nutrients: NutrientSet
+  llmEstimated: boolean
+}
+
+async function fromOpenFoodFacts(foodName: string, unitName?: string): Promise<ResolvedNutrients | null> {
+  const result = await lookupNutrients(foodName, unitName)
+  if (!result.matched || result.nutrients === null) return null
+  return { nutrients: result.nutrients, llmEstimated: false }
+}
+
+async function fromLlm(foodName: string): Promise<ResolvedNutrients | null> {
+  const nutrients = await estimateNutrients(foodName)
+  if (nutrients === null) return null
+  return { nutrients, llmEstimated: true }
+}
+
+async function resolveNutrients(foodName: string, unitName?: string): Promise<ResolvedNutrients | null> {
+  if (config.estimate.nutrientSource === "llm") {
+    return (await fromLlm(foodName)) ?? (await fromOpenFoodFacts(foodName, unitName))
+  }
+  return (await fromOpenFoodFacts(foodName, unitName)) ?? (await fromLlm(foodName))
 }
 
 export async function estimateRecipe(recipe: MealieRecipe): Promise<EstimateResult> {

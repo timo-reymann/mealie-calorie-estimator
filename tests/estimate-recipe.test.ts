@@ -11,6 +11,7 @@ beforeAll(async () => {
 beforeEach(() => {
   config.llm.enabled = false
   config.llm.apiKey = ""
+  config.estimate.nutrientSource = "off"
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -54,6 +55,17 @@ function emptyHitsResponse(): Response {
     status: 200,
     headers: { "content-type": "application/json" },
   })
+}
+
+function llmResponse(nutrients: Record<string, number>): Response {
+  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(nutrients) } }] }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  })
+}
+
+function isLlmCall(input: RequestInfo | URL): boolean {
+  return String(input).includes("/chat/completions")
 }
 
 function queryOf(input: RequestInfo | URL): string {
@@ -109,5 +121,56 @@ describe("estimateRecipe", () => {
     expect(result.matchedIngredients.map((i) => i.matched)).toEqual([false, false])
     expect(result.matchedIngredients.map((i) => i.grams)).toEqual([null, null])
     expect(result.totalNutrients.kcalPer100g).toBeNull()
+  })
+
+  describe("NUTRIENT_SOURCE", () => {
+    function enableLlm(): void {
+      config.llm.enabled = true
+      config.llm.apiKey = "test-key"
+    }
+
+    it("prefers Open Food Facts and only asks the LLM when there is no match by default", async () => {
+      enableLlm()
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        if (isLlmCall(input)) return llmResponse({ kcal: 43, protein: 3 })
+        if (queryOf(input) === "Kirschtomaten OFF") return hitsResponse({ "energy-kcal_100g": 220 }, "Pizza")
+        return emptyHitsResponse()
+      })
+
+      const result = await estimateRecipe(
+        makeRecipe([ingredient("Kirschtomaten OFF", 100), ingredient("Dill OFF", 100)]),
+      )
+
+      expect(result.totalNutrients.kcalPer100g).toBe(263)
+      expect(result.matchedIngredients.map((i) => i.llmEstimated)).toEqual([false, true])
+      expect(fetchMock.mock.calls.filter(([input]) => isLlmCall(input))).toHaveLength(1)
+    })
+
+    it("asks the LLM first and skips Open Food Facts when set to llm", async () => {
+      enableLlm()
+      config.estimate.nutrientSource = "llm"
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        if (isLlmCall(input)) return llmResponse({ kcal: 18, protein: 0.9 })
+        return hitsResponse({ "energy-kcal_100g": 220 }, "Pizza")
+      })
+
+      const result = await estimateRecipe(makeRecipe([ingredient("Kirschtomaten LLM", 500)]))
+
+      expect(result.totalNutrients.kcalPer100g).toBe(90)
+      expect(result.matchedIngredients[0].llmEstimated).toBe(true)
+      expect(fetchMock.mock.calls.some(([input]) => !isLlmCall(input))).toBe(false)
+    })
+
+    it("falls back to Open Food Facts when set to llm but the LLM is disabled", async () => {
+      config.estimate.nutrientSource = "llm"
+      vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+        hitsResponse({ "energy-kcal_100g": 257 }, "Feta"),
+      )
+
+      const result = await estimateRecipe(makeRecipe([ingredient("Feta Fallback", 100)]))
+
+      expect(result.totalNutrients.kcalPer100g).toBe(257)
+      expect(result.matchedIngredients[0].llmEstimated).toBe(false)
+    })
   })
 })
