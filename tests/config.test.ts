@@ -59,3 +59,23 @@ describe("getMealieToken", () => {
     expect(gt()).toBe("fallback-token")
   })
 })
+
+describe("NUTRIENT_SOURCE", () => {
+  it("defaults to off", async () => {
+    delete process.env.NUTRIENT_SOURCE
+    const { config } = await import("../src/config.js")
+    expect(config.estimate.nutrientSource).toBe("off")
+  })
+
+  it("accepts llm case-insensitively", async () => {
+    process.env.NUTRIENT_SOURCE = "LLM"
+    const { config } = await import("../src/config.js")
+    expect(config.estimate.nutrientSource).toBe("llm")
+  })
+
+  it("treats unknown values as off", async () => {
+    process.env.NUTRIENT_SOURCE = "usda"
+    const { config } = await import("../src/config.js")
+    expect(config.estimate.nutrientSource).toBe("off")
+  })
+})

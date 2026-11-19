@@ -28,7 +28,7 @@ describe("cache", () => {
     setCachedNutrients("flour", {
       kcalPer100g: 364, proteinPer100g: 10, carbsPer100g: 76, fatPer100g: 1,
       saturatedFatPer100g: 0.2, transFatPer100g: 0, unsaturatedFatPer100g: 0.8,
-      fiberPer100g: 2.7, sugarPer100g: 0.4, sodiumPer100g: 0.002, cholesterolPer100g: 0,
+      fiberPer100g: 2.7, sugarPer100g: 0.4, sodiumPer100g: 2, cholesterolPer100g: 0,
     })
     setCachedNutrients("sugar", {
       kcalPer100g: 387, proteinPer100g: 0, carbsPer100g: 100, fatPer100g: 0,

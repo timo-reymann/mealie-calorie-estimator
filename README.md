@@ -124,6 +124,7 @@ It's recommended to install it next to your Mealie instance using docker-compose
 | `LLM_MAX_TOKENS_NUTRIENTS` | `200` | Max tokens for nutrient estimation responses |
 | `ESTIMATE_STRATEGY` | `all` | Estimation strategy: `all` (estimate every recipe) or `tagged` (only estimate recipes with the `ESTIMATE_TAG` tag) |
 | `ESTIMATE_TAG` | `estimate` | Tag name to check when `ESTIMATE_STRATEGY=tagged` |
+| `NUTRIENT_SOURCE` | `off` | Where nutrient values per 100g come from: `off` (Open Food Facts first, LLM fallback) or `llm` (LLM first, Open Food Facts fallback). `llm` requires `LLM_ENABLED=true` and is usually more accurate for plain ingredients, since Open Food Facts search returns packaged products (e.g. "cherry tomatoes" can match a pizza) |
 | `EVENT_DEBOUNCE_MS` | `2000` | Quiet period before a recipe event is processed. Bursts of rapid saves for the same recipe are coalesced into one run and all writes for a recipe are serialized, so concurrent patches cannot duplicate ingredients |
 | `MEALIE_RECIPE_URL_TEMPLATE` | `${MEALIE_URL}/recipe/{slug}` | URL template for recipe links on the history page, `{slug}` is replaced with the recipe slug |
 | `HISTORY_MAX_ENTRIES` | `200` | Maximum number of in-memory execution records kept for `/estimator/history` |
