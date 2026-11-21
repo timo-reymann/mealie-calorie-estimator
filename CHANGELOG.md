@@ -1,3 +1,13 @@
+## [1.14.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.13.0...v1.14.0) (2026-11-21)
+
+### Features
+
+* configurable auto-tag locale via TAG_LOCALE ([afd0118](https://github.com/timo-reymann/mealie-calorie-estimator/commit/afd0118e79451e8fb9540d578d52e4bdffb23b72)), closes [#37](https://github.com/timo-reymann/mealie-calorie-estimator/issues/37)
+
+### Bug Fixes
+
+* harden tag locale migration against partial and stale writes ([c100771](https://github.com/timo-reymann/mealie-calorie-estimator/commit/c100771ac846784a9bef343d7521975e7e09a898))
+
 ## [1.13.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.12.3...v1.13.0) (2026-11-21)
 
 ### Features
