@@ -11,6 +11,9 @@ import { seedDevHistory } from "./utils/dev-seed.js"
 
 async function main() {
   await initCache()
+  if (config.estimate.nutrientSource === "llm" && !(config.llm.enabled && config.llm.apiKey)) {
+    logger.warn("NUTRIENT_SOURCE=llm but the LLM is not enabled or has no API key, falling back to Open Food Facts")
+  }
   const app = Fastify({
     logger: false,
   })

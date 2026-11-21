@@ -61,6 +61,9 @@ export const config = {
   estimate: {
     strategy: (process.env.ESTIMATE_STRATEGY || "all") as "all" | "tagged",
     tag: process.env.ESTIMATE_TAG || "estimate",
+    nutrientSource: ((process.env.NUTRIENT_SOURCE || "off").toLowerCase() === "llm" ? "llm" : "off") as
+      | "off"
+      | "llm",
   },
 
   events: {
