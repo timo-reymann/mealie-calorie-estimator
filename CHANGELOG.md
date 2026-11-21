@@ -1,3 +1,9 @@
+## [1.13.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.12.3...v1.13.0) (2026-11-21)
+
+### Features
+
+* add NUTRIENT_SOURCE to prefer LLM nutrient estimates ([#42](https://github.com/timo-reymann/mealie-calorie-estimator/issues/42)) ([e0f079d](https://github.com/timo-reymann/mealie-calorie-estimator/commit/e0f079db61aeb60a7a2332b136a56b5720c2c0b6)), closes [#39](https://github.com/timo-reymann/mealie-calorie-estimator/issues/39) [#41](https://github.com/timo-reymann/mealie-calorie-estimator/issues/41)
+
 ## [1.12.3](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.12.2...v1.12.3) (2026-10-16)
 
 ### Bug Fixes
