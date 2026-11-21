@@ -46,6 +46,20 @@ afterEach(() => {
   process.env = { ...ORIGINAL_ENV }
 })
 
+describe("localizeTag", () => {
+  it("passes through unknown keys, including inherited properties", async () => {
+    const { localizeTag } = await import("../src/services/tag-locale.js")
+    expect(localizeTag("constructor", "en")).toBe("constructor")
+    expect(localizeTag("constructor", "de")).toBe("constructor")
+  })
+
+  it("translates known keys", async () => {
+    const { localizeTag } = await import("../src/services/tag-locale.js")
+    expect(localizeTag("Calories:Light", "de")).toBe("Kalorien:Leicht")
+    expect(localizeTag("Calories:Light", "en")).toBe("Calories:Light")
+  })
+})
+
 describe("resolveTagLocale", () => {
   it("defaults to en", async () => {
     const { resolveTagLocale } = await import("../src/services/tag-locale.js")
@@ -144,6 +158,10 @@ describe("resolveAndMergeTags locale migration with TAG_LOCALE=de", () => {
 })
 
 describe("tagsAreComplete locale gate with default en", () => {
+  beforeEach(() => {
+    delete process.env.TAG_LOCALE
+  })
+
   it("accepts legacy tags without stored locale", async () => {
     const { tagsAreComplete } = await import("../src/services/tagging.js")
     const recipe = makeRecipe(

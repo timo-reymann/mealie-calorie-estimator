@@ -7,7 +7,7 @@ import {
   buildManualAckPatch,
   shouldEstimate,
 } from "../services/estimator.js"
-import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag, buildAutoTagExtras } from "../services/tagging.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAutoTags, mergeTags, estimateAndTag, buildAutoTagExtras } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 import { slugQueue } from "../utils/slug-queue.js"
 import { recordStart } from "../utils/execution-history.js"
@@ -53,10 +53,24 @@ async function processWebhook(slug: string): Promise<void> {
       }
 
       const perServing = perServingFromRecipeNutrition(recipe.nutrition)
-      const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, householdId)
+      const autoTags = await resolveAutoTags(recipe, perServing, householdId)
+
+      const fresh = await getRecipe(slug, householdId)
+      if (computeIngredientHash(fresh) !== hash) {
+        logger.info({ slug }, "Recipe changed during tag resolution, skipping tag update")
+        handle.complete("skipped", ["Recipe changed during tag resolution"])
+        return
+      }
+      if (tagsAreComplete(fresh)) {
+        logger.info({ slug }, "Tags up to date, skipping")
+        handle.complete("skipped", ["Ingredients unchanged, tags already applied"])
+        return
+      }
+
+      const { tags, tagSlugs } = mergeTags(fresh, autoTags)
       await patchRecipe(slug, {
         tags,
-        extras: { ...recipe.extras, ...buildAutoTagExtras(tagSlugs) },
+        extras: { ...fresh.extras, ...buildAutoTagExtras(tagSlugs) },
       }, householdId)
       logger.info({ slug, tags: tagSlugs }, "Added missing auto-tags")
       handle.complete("tags-added", [`Added auto-tags: ${tagSlugs.join(", ")}`])

@@ -71,20 +71,20 @@ export async function resolveAutoTags(
   recipe: MealieRecipe,
   perServing: NutrientSet,
   householdId?: string | null,
-): Promise<{ tags: MealieTag[]; slugs: string[] }> {
+): Promise<MealieTag[]> {
   const tagNames = computeTags(perServing)
-  const autoTags = await getOrCreateTags(tagNames, householdId)
-  const oldSlugs: string[] = JSON.parse(recipe.extras?.calorie_estimator_tags || "[]")
-  return { tags: autoTags, slugs: oldSlugs }
+  return getOrCreateTags(tagNames, householdId)
 }
 
 export function mergeTags(
   recipe: MealieRecipe,
   autoTags: MealieTag[],
-  oldSlugs: string[],
-): MealieTag[] {
+): { tags: MealieTag[]; tagSlugs: string[] } {
+  const oldSlugs: string[] = JSON.parse(recipe.extras?.calorie_estimator_tags || "[]")
   const userTags = (recipe.tags || []).filter(t => !oldSlugs.includes(t.slug))
-  return [...userTags, ...autoTags]
+  const userSlugs = new Set(userTags.map(t => t.slug))
+  const ownedTags = autoTags.filter(t => !userSlugs.has(t.slug))
+  return { tags: [...userTags, ...ownedTags], tagSlugs: ownedTags.map(t => t.slug) }
 }
 
 export function tagsAreComplete(recipe: MealieRecipe): boolean {
@@ -108,9 +108,8 @@ export async function resolveAndMergeTags(
   perServing: NutrientSet,
   householdId?: string | null,
 ): Promise<{ tags: MealieTag[]; tagSlugs: string[] }> {
-  const { tags: autoTags, slugs: oldSlugs } = await resolveAutoTags(recipe, perServing, householdId)
-  const merged = mergeTags(recipe, autoTags, oldSlugs)
-  return { tags: merged, tagSlugs: autoTags.map(t => t.slug) }
+  const autoTags = await resolveAutoTags(recipe, perServing, householdId)
+  return mergeTags(recipe, autoTags)
 }
 
 export async function estimateAndTag(
@@ -127,10 +126,11 @@ export async function estimateAndTag(
   const result = await estimateRecipe(recipe)
   const nutritionPatch = buildNutritionPatch(result, hash)
   const { tags, tagSlugs } = await resolveAndMergeTags(recipe, result.perServingNutrients, householdId)
+  const { calorie_estimator_total_kcal: _previousTotal, ...carriedExtras } = recipe.extras ?? {}
   await patchRecipe(recipe.slug, {
     ...nutritionPatch,
     tags,
-    extras: { ...recipe.extras, ...nutritionPatch.extras, ...buildAutoTagExtras(tagSlugs) },
+    extras: { ...carriedExtras, ...nutritionPatch.extras, ...buildAutoTagExtras(tagSlugs) },
   }, householdId)
   return {
     calories: result.perServingNutrients.kcalPer100g,
