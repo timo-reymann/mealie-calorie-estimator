@@ -76,7 +76,11 @@ Supported locales:
 | `en` (default) | `Calories:Light`, `Calories:Moderate`, `Calories:Hearty`, `Calories:Heavy` | `Digest:Easy`, `Digest:Moderate`, `Digest:Slow`, `Digest:Unknown` |
 | `de` | `Kalorien:Leicht`, `Kalorien:Mittel`, `Kalorien:Deftig`, `Kalorien:Schwer` | `Verdauung:Leicht`, `Verdauung:Mittel`, `Verdauung:Schwer`, `Verdauung:Unbekannt` |
 
-Unsupported values fall back to `en` with a startup warning. When `TAG_LOCALE` changes, existing auto-tags are replaced on the next run of each recipe (webhook event or `/estimate`) while user-applied tags are preserved. Run `POST /backfill` to migrate all recipes at once.
+Unsupported values fall back to `en` with a startup warning. When `TAG_LOCALE` changes, existing auto-tags are replaced on the next run of each recipe (webhook event or `/estimate`) while user-applied tags are preserved. Run `POST /backfill` to migrate all eligible recipes at once.
+
+`POST /backfill` migrates only recipes that are eligible for estimation. With `ESTIMATE_STRATEGY=tagged`, recipes without the estimation tag keep their existing auto-tags. Add the tag to these recipes, or run the backfill with `ESTIMATE_STRATEGY=all`, to migrate the full collection.
+
+Recipes with stored manual calories need two runs: the first run acknowledges the manual entry and stores the estimator hash, but keeps the manual nutrition and the existing tags. The tags then migrate on the next eligible run.
 
 ## Installation
 

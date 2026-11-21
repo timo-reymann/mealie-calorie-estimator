@@ -11,6 +11,10 @@ vi.mock("../src/services/estimator.js", async (importOriginal) => ({
   estimateRecipe: vi.fn(),
 }))
 
+// Config is read at import time; pin the locale before importing the estimator
+// so this test does not depend on the shell environment.
+process.env.TAG_LOCALE = "en"
+
 const { patchRecipe } = await import("../src/services/mealie-client.js")
 const { estimateRecipe } = await import("../src/services/estimator.js")
 const { estimateAndTag } = await import("../src/services/tagging.js")
@@ -81,5 +85,27 @@ describe("estimateAndTag", () => {
     const patch = vi.mocked(patchRecipe).mock.calls[0][1]
     expect(patch.extras?.calorie_estimator_hash).toBe("newhash")
     expect(patch.extras?.calorie_estimator_total_kcal).toBe("2000")
+  })
+
+  it("drops the previous calorie total when the new estimate has none", async () => {
+    vi.mocked(estimateRecipe).mockResolvedValue({
+      slug: "test",
+      servings: 4,
+      totalNutrients: nutrients(null),
+      perServingNutrients: nutrients(null),
+      matchedCount: 0,
+      unmatchedCount: 0,
+      unmatchedIngredients: [],
+      matchedIngredients: [],
+    } satisfies EstimateResult)
+    const recipe = makeRecipe({
+      extras: { calorie_estimator_total_kcal: "1", user_extra: "keep me" },
+    })
+
+    await estimateAndTag(recipe, "newhash")
+
+    const patch = vi.mocked(patchRecipe).mock.calls[0][1]
+    expect(patch.extras?.calorie_estimator_total_kcal).toBeUndefined()
+    expect(patch.extras?.user_extra).toBe("keep me")
   })
 })

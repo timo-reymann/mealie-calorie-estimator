@@ -6,7 +6,7 @@ import {
   buildManualAckPatch,
   shouldEstimate,
 } from "../services/estimator.js"
-import { perServingFromRecipeNutrition, tagsAreComplete, resolveAndMergeTags, estimateAndTag, buildAutoTagExtras } from "../services/tagging.js"
+import { perServingFromRecipeNutrition, tagsAreComplete, resolveAutoTags, mergeTags, estimateAndTag, buildAutoTagExtras } from "../services/tagging.js"
 import { logger } from "../utils/logger.js"
 import { slugQueue } from "../utils/slug-queue.js"
 import { recordStart } from "../utils/execution-history.js"
@@ -49,10 +49,24 @@ async function processBackfill(): Promise<void> {
             }
 
             const perServing = perServingFromRecipeNutrition(recipe.nutrition)
-            const { tags, tagSlugs } = await resolveAndMergeTags(recipe, perServing, householdId)
+            const autoTags = await resolveAutoTags(recipe, perServing, householdId)
+
+            const fresh = await getRecipe(slug, householdId)
+            if (computeIngredientHash(fresh) !== hash) {
+              skipped++
+              handle.complete("skipped", ["Recipe changed during tag resolution"])
+              return
+            }
+            if (tagsAreComplete(fresh)) {
+              skipped++
+              handle.complete("skipped", ["Ingredients unchanged, tags already applied"])
+              return
+            }
+
+            const { tags, tagSlugs } = mergeTags(fresh, autoTags)
             await patchRecipe(slug, {
               tags,
-              extras: { ...recipe.extras, ...buildAutoTagExtras(tagSlugs) },
+              extras: { ...fresh.extras, ...buildAutoTagExtras(tagSlugs) },
             }, householdId)
             tagOnly++
             handle.complete("tags-added", [`Added auto-tags: ${tagSlugs.join(", ")}`])

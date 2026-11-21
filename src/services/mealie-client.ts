@@ -152,7 +152,9 @@ export async function getOrCreateTags(names: string[], householdId?: string | nu
   const all = await request<TagsPagination>("GET", "/api/organizers/tags?perPage=-1", undefined, token)
   const existingByName = new Map<string, MealieTag>(all.items.map((t) => [t.name, t]))
 
-  return created
-    .map((tag, i) => tag ?? existingByName.get(names[i]))
-    .filter((tag): tag is MealieTag => tag !== undefined)
+  const resolved = created.map((tag, i) => tag ?? existingByName.get(names[i]))
+  if (resolved.some((t) => t === undefined)) {
+    throw new Error(`Mealie API could not resolve tags: ${names.join(", ")}`)
+  }
+  return resolved.filter((t): t is MealieTag => t !== undefined)
 }

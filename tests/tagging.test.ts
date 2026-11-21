@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import {
   getCalorieTag,
   getDigestibilityTag,
@@ -8,6 +8,12 @@ import {
   tagsAreComplete,
 } from "../src/services/tagging.js"
 import type { NutrientSet, MealieNutrition, MealieTag, MealieRecipe } from "../src/types.js"
+
+// Config is read at import time; pin the locale before importing tagging
+// so these tests do not depend on the shell environment.
+vi.hoisted(() => {
+  process.env.TAG_LOCALE = "en"
+})
 
 function n(kcal: number, p: Partial<NutrientSet> = {}): NutrientSet {
   return {
@@ -203,10 +209,11 @@ describe("mergeTags", () => {
     const userTags = [tag("UserTag", "usertag")]
     const recipe = makeRecipe(userTags, ["calories-light"])
 
-    const result = mergeTags(recipe, [tag("Calories:Hearty", "calories-hearty")], ["calories-light"])
-    expect(result).toHaveLength(2)
-    expect(result.map(t => t.slug)).toContain("usertag")
-    expect(result.map(t => t.slug)).toContain("calories-hearty")
+    const result = mergeTags(recipe, [tag("Calories:Hearty", "calories-hearty")])
+    expect(result.tags).toHaveLength(2)
+    expect(result.tags.map(t => t.slug)).toContain("usertag")
+    expect(result.tags.map(t => t.slug)).toContain("calories-hearty")
+    expect(result.tagSlugs).toEqual(["calories-hearty"])
   })
 
   it("replaces old auto tags with new ones", () => {
@@ -215,11 +222,11 @@ describe("mergeTags", () => {
       ["calories-light"],
     )
 
-    const result = mergeTags(recipe, [tag("Calories:Hearty", "calories-hearty")], ["calories-light"])
-    expect(result).toHaveLength(2)
-    expect(result.map(t => t.slug)).toContain("usertag")
-    expect(result.map(t => t.slug)).toContain("calories-hearty")
-    expect(result.map(t => t.slug)).not.toContain("calories-light")
+    const result = mergeTags(recipe, [tag("Calories:Hearty", "calories-hearty")])
+    expect(result.tags).toHaveLength(2)
+    expect(result.tags.map(t => t.slug)).toContain("usertag")
+    expect(result.tags.map(t => t.slug)).toContain("calories-hearty")
+    expect(result.tags.map(t => t.slug)).not.toContain("calories-light")
   })
 
   it("removes all old auto tags when no new auto tags", () => {
@@ -228,25 +235,35 @@ describe("mergeTags", () => {
       ["calories-light"],
     )
 
-    const result = mergeTags(recipe, [], ["calories-light"])
-    expect(result).toHaveLength(1)
-    expect(result[0].slug).toBe("usertag")
+    const result = mergeTags(recipe, [])
+    expect(result.tags).toHaveLength(1)
+    expect(result.tags[0].slug).toBe("usertag")
+    expect(result.tagSlugs).toEqual([])
   })
 
   it("handles empty recipe tags", () => {
     const recipe = makeRecipe([], ["calories-light"])
 
-    const result = mergeTags(recipe, [tag("Calories:Light", "calories-light")], ["calories-light"])
-    expect(result).toHaveLength(1)
-    expect(result[0].slug).toBe("calories-light")
+    const result = mergeTags(recipe, [tag("Calories:Light", "calories-light")])
+    expect(result.tags).toHaveLength(1)
+    expect(result.tags[0].slug).toBe("calories-light")
   })
 
   it("handles null recipe tags", () => {
     const recipe = makeRecipe([], ["calories-light"])
     recipe.tags = null
 
-    const result = mergeTags(recipe, [tag("Calories:Light", "calories-light")], [])
-    expect(result).toHaveLength(1)
+    const result = mergeTags(recipe, [tag("Calories:Light", "calories-light")])
+    expect(result.tags).toHaveLength(1)
+  })
+
+  it("does not duplicate a generated tag the user already applied", () => {
+    const recipe = makeRecipe([tag("Calories:Hearty", "calories-hearty")])
+
+    const result = mergeTags(recipe, [tag("Calories:Hearty", "calories-hearty")])
+    expect(result.tags).toHaveLength(1)
+    expect(result.tags[0].slug).toBe("calories-hearty")
+    expect(result.tagSlugs).toEqual([])
   })
 })
 

@@ -24,5 +24,6 @@ export function resolveTagLocale(value: string | undefined): TagLocale {
 }
 
 export function localizeTag(key: string, locale: TagLocale): string {
-  return TAG_TRANSLATIONS[locale][key] ?? key
+  const translations = TAG_TRANSLATIONS[locale]
+  return Object.hasOwn(translations, key) ? translations[key] : key
 }
