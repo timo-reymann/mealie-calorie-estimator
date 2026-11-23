@@ -107,13 +107,11 @@ async function evaluateIngredient(ing: MealieIngredient): Promise<IngredientOutc
   let llmEstimated = false
 
   if (grams === null) {
-    const unitName = ing.unit?.name
-    if (unitName) {
-      const llmGrams = await estimateGrams(quantity, unitName, foodName)
-      if (llmGrams !== null) {
-        grams = llmGrams
-        llmEstimated = true
-      }
+    const unitName = ing.unit?.name ?? "piece"
+    const llmGrams = await estimateGrams(quantity, unitName, foodName)
+    if (llmGrams !== null) {
+      grams = llmGrams
+      llmEstimated = true
     }
   }
 

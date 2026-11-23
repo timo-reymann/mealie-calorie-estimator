@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest"
 import { estimateRecipe } from "../src/services/estimator.js"
-import { initCache } from "../src/utils/cache.js"
+import { initCache, clearLlmCache } from "../src/utils/cache.js"
 import { config } from "../src/config.js"
 import type { MealieIngredient, MealieRecipe } from "../src/types.js"
 
@@ -23,6 +23,18 @@ function ingredient(foodName: string, quantity: number): MealieIngredient {
     food: { id: foodName, name: foodName, pluralName: null, aliases: [] },
     note: null,
     display: `${quantity} g ${foodName}`,
+    title: null,
+    original_text: null,
+  }
+}
+
+function unitlessIngredient(foodName: string, quantity: number): MealieIngredient {
+  return {
+    quantity,
+    unit: null,
+    food: { id: foodName, name: foodName, pluralName: null, aliases: [] },
+    note: null,
+    display: `${quantity} ${foodName}`,
     title: null,
     original_text: null,
   }
@@ -121,6 +133,49 @@ describe("estimateRecipe", () => {
     expect(result.matchedIngredients.map((i) => i.matched)).toEqual([false, false])
     expect(result.matchedIngredients.map((i) => i.grams)).toEqual([null, null])
     expect(result.totalNutrients.kcalPer100g).toBeNull()
+  })
+
+  it("leaves unitless counts unmatched when LLM is disabled", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () => emptyHitsResponse())
+
+    const result = await estimateRecipe(makeRecipe([unitlessIngredient("avocado", 2)]))
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(result.matchedCount).toBe(0)
+    expect(result.unmatchedIngredients).toEqual(["avocado"])
+    expect(result.matchedIngredients[0].grams).toBeNull()
+  })
+
+  it("estimates unitless counts like pieces via LLM", async () => {
+    config.llm.enabled = true
+    config.llm.apiKey = "test-key"
+    clearLlmCache()
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      if (isLlmCall(input)) {
+        return new Response(JSON.stringify({ choices: [{ message: { content: "150" } }] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      }
+      if (queryOf(input) === "avocado") return hitsResponse({ "energy-kcal_100g": 160 }, "Avocado")
+      return emptyHitsResponse()
+    })
+
+    const result = await estimateRecipe(makeRecipe([unitlessIngredient("avocado", 2)]))
+
+    const llmCall = fetchMock.mock.calls.find(([input]) => isLlmCall(input))
+    expect(llmCall).toBeDefined()
+    const body = JSON.parse(llmCall![1]!.body as string)
+    expect(body.messages[0].content).toContain("1 piece of avocado")
+
+    expect(result.matchedCount).toBe(1)
+    expect(result.unmatchedIngredients).toEqual([])
+    expect(result.matchedIngredients[0].matched).toBe(true)
+    expect(result.matchedIngredients[0].grams).toBe(300)
+    expect(result.matchedIngredients[0].llmEstimated).toBe(true)
+    expect(result.totalNutrients.kcalPer100g).toBe(480)
+    expect(result.perServingNutrients.kcalPer100g).toBe(120)
   })
 
   describe("NUTRIENT_SOURCE", () => {
