@@ -22,7 +22,7 @@ mealie-calorie-estimator
 <!-- List features as bullet points -->
 
 - Estimates nutrition from [Open Food Facts](https://world.openfoodfacts.org/) (configurable language)
-- Optional LLM fallback for unmatched foods and custom units (Dose, Glas, Päckchen, Bund)
+- Optional LLM fallback for unmatched foods, custom units (Dose, Glas, Päckchen, Bund), and unitless counts
 - Built-in unit conversion (g, kg, tbsp, tsp, cup, oz, lb)
 - Skips re-estimation via a SHA256 ingredient hash and preserves manually entered calories
 - Webhook, on-demand, and bulk backfill entry points
@@ -37,7 +37,7 @@ This small service enriches [Mealie](https://mealie.io/) (self-hosted recipe man
 2. **Resolving ingredients** — each `food.name` is searched on Open Food Facts, with an optional LLM estimate per 100g when there is no match.
 3. **Patching nutrition** back into Mealie's nutrition fields.
 
-Unit conversion uses a built-in table for common units. Custom units are estimated via LLM when enabled. A SHA256 hash of the ingredients skips re-estimation when nothing changed, and manually entered calories are preserved.
+Unit conversion uses a built-in table for common units. Custom units and unitless counts (e.g. "2 avocado") are treated like "piece" and estimated via LLM when enabled. A SHA256 hash of the ingredients skips re-estimation when nothing changed, and manually entered calories are preserved.
 
 ### Auto-Tagging
 
