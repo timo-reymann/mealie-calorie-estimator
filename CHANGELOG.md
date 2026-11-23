@@ -1,3 +1,9 @@
+## [1.14.1](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.14.0...v1.14.1) (2026-11-23)
+
+### Bug Fixes
+
+* estimate unitless count ingredients like pieces via LLM ([c224554](https://github.com/timo-reymann/mealie-calorie-estimator/commit/c22455454c8fb90970a7f663e837a281716f3805)), closes [#43](https://github.com/timo-reymann/mealie-calorie-estimator/issues/43)
+
 ## [1.14.0](https://github.com/timo-reymann/mealie-calorie-estimator/compare/v1.13.0...v1.14.0) (2026-11-21)
 
 ### Features
