@@ -238,7 +238,7 @@ SOFTWARE.
 =============================================
 
 Module:  @rolldown/binding-linux-x64-gnu
-Version: 1.0.3
+Version: 1.2.19
 License: MIT
 
 # `@rolldown/binding-linux-x64-gnu`
@@ -920,7 +920,7 @@ software or this license, under any kind of legal claim.***
 =============================================
 
 Module:  mealie-calorie-estimator
-Version: 1.0.0
+Version: 1.14.1
 License: GPL-3.0*
 
 GNU GENERAL PUBLIC LICENSE
