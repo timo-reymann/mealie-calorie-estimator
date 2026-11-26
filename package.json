@@ -14,15 +14,15 @@
     "@fastify/cors": "^11.2.0",
     "fastify": "^5.3.1",
     "lru-cache": "^11.1.0",
-    "pino": "^9.6.0",
-    "rate-limiter-flexible": "^5.0.5",
+    "pino": "^10.0.0",
+    "rate-limiter-flexible": "^11.0.0",
     "sql.js": "^1.14.1"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
+    "@types/node": "^26.0.0",
     "@types/sql.js": "^1.4.11",
     "tsx": "^4.19.0",
-    "typescript": "^5.8.0",
+    "typescript": "^7.0.0",
     "vitest": "^4.1.8",
     "@vitest/coverage-v8": "^4.1.8"
   },
