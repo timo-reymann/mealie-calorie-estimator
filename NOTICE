@@ -238,7 +238,7 @@ SOFTWARE.
 =============================================
 
 Module:  @rolldown/binding-linux-x64-gnu
-Version: 1.0.3
+Version: 1.3.3
 License: MIT
 
 # `@rolldown/binding-linux-x64-gnu`
@@ -858,7 +858,7 @@ The complete list of contributors can be found at:
 =============================================
 
 Module:  lru-cache
-Version: 11.5.1
+Version: 11.5.3
 License: BlueOak-1.0.0
 
 # Blue Oak Model License
@@ -920,7 +920,7 @@ software or this license, under any kind of legal claim.***
 =============================================
 
 Module:  mealie-calorie-estimator
-Version: 1.0.0
+Version: 1.14.1
 License: GPL-3.0*
 
 GNU GENERAL PUBLIC LICENSE
@@ -2111,7 +2111,7 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 =============================================
 
 Module:  sql.js
-Version: 1.14.1
+Version: 1.17.0
 License: MIT
 
 MIT license
