@@ -47,7 +47,7 @@ services:
       - test
 
   mock-off:
-    image: node:22-alpine
+    image: node:26-alpine
     container_name: mealie-mock-off
     command: ["node", "/app/mock-off-server.js"]
     volumes:
