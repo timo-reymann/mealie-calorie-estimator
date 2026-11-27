@@ -920,7 +920,7 @@ software or this license, under any kind of legal claim.***
 =============================================
 
 Module:  mealie-calorie-estimator
-Version: 1.0.0
+Version: 1.14.1
 License: GPL-3.0*
 
 GNU GENERAL PUBLIC LICENSE
@@ -1629,7 +1629,7 @@ SOFTWARE.
 =============================================
 
 Module:  pino-abstract-transport
-Version: 2.0.0
+Version: 3.0.0
 License: MIT
 
 MIT License
@@ -1671,12 +1671,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 =============================================
 
 Module:  pino
-Version: 9.14.0
+Version: 10.4.0
 License: MIT
 
 The MIT License (MIT)
 
-Copyright (c) 2016-2025 Matteo Collina, David Mark Clements and the Pino contributors listed at <https://github.com/pinojs/pino#the-team> and in the README file.
+Copyright (c) 2016-present Matteo Collina, David Mark Clements and the Pino contributors listed at <https://github.com/pinojs/pino#the-team> and in the README file.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1783,7 +1783,7 @@ SOFTWARE.
 =============================================
 
 Module:  rate-limiter-flexible
-Version: 5.0.5
+Version: 11.5.0
 License: ISC
 
 ## ISC License (ISC)
@@ -1797,7 +1797,7 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 =============================================
 
 Module:  real-require
-Version: 0.2.0
+Version: 1.0.0
 License: MIT
 
 The MIT License (MIT)
@@ -2162,7 +2162,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 =============================================
 
 Module:  thread-stream
-Version: 3.2.0
+Version: 4.2.1
 License: MIT
 
 MIT License
